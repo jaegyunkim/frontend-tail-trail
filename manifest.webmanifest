@@ -1,0 +1,12 @@
+{
+  "name": "꼬리길 · TailTrail",
+  "short_name": "꼬리길",
+  "description": "오늘 우리 강아지가 걷기 좋은 시간과 길, 가까운 공원·동물병원·미용·애견샵을 알려 주는 애견 산책 도우미",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F5EF",
+  "theme_color": "#2F6B4F",
+  "icons": [{ "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

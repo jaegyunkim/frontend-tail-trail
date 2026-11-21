@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F7F5EF">
+  <meta name="description" content="꼬리길 — 오늘 우리 강아지가 걷기 좋은 길과 시간, 가까운 공원·동물병원·미용·애견샵을 한 화면에 알려 주는 애견 산책 도우미">
+  <title>꼬리길 · TailTrail</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=0.1.0">
+</head>
+<body>
+  <!-- 로그인 -->
+  <section id="loginView" class="login-view" hidden>
+    <div class="login-card">
+      <img class="login-hero" src="assets/login-hero.svg?v=0.1.0" alt="" width="420" height="150">
+      <p class="eyebrow">TAILTRAIL · 강아지 산책</p>
+      <h1 class="login-title">오늘 우리 아이,<br><em>나가도 될까요?</em></h1>
+      <form id="loginForm" autocomplete="on">
+        <label class="field"><span>아이디(이메일)</span><span class="clearable"><input id="loginId" data-clearable name="username" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="254"><button type="button" class="clear-btn" aria-label="입력한 아이디 지우기" hidden><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="9"/><path d="M7 7l6 6M13 7l-6 6"/></svg></button></span></label>
+        <label class="field"><span>비밀번호</span><span class="clearable has-eye"><input id="loginPw" data-clearable name="password" type="password" autocomplete="current-password" required maxlength="128"><button type="button" class="clear-btn" aria-label="입력한 비밀번호 지우기" hidden><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="9"/><path d="M7 7l6 6M13 7l-6 6"/></svg></button><button type="button" class="eye-btn" id="pwToggle" aria-label="비밀번호 보기" aria-pressed="false" aria-controls="loginPw"><svg class="eye-on" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5c2 0 3.7.6 5.1 1.5M22 12s-3.6 6.5-10 6.5c-2 0-3.7-.6-5.1-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/></svg></button></span></label>
+        <label class="remember"><input type="checkbox" id="rememberId"> 아이디 저장</label>
+        <button type="submit" id="loginBtn" class="primary">로그인</button>
+      </form>
+      <a class="signup" href="register.html">처음이에요 · 이용 신청하기</a>
+      <p id="loginMsg" class="msg" role="alert"></p>
+      <details class="notes"><summary>이용 안내</summary><ul>
+        <li id="loginPolicy">이용 시간과 질문·로그인 한도는 계정 역할에 따라 달라요.</li>
+        <li>베타 테스터는 한 기기에서만 로그인할 수 있어요. 한 번에 쓸 수 있는 시간이 끝나거나 15분 동안 사용하지 않으면 자동 로그아웃돼요(음성 재생 중에는 비활동 시간 제외).</li>
+        <li>산책 판단 기록은 서비스 개선과 운영을 위해 30일간 보관돼요. 우리 아이 정보·꼬리일기·자주 걷는 곳은 직접 지울 때까지 보관돼요. 아이 사진과 정확한 집 주소는 받지 않아요.</li>
+        <li>로그인 직후 위치 사용을 허용하시면 로그인 기록 확인을 위해 대략적인 위치(약 100m 단위)를 30일간 보관해요. 허용하지 않아도 그대로 이용할 수 있어요.</li>
+      </ul></details>
+    </div>
+  </section>
+
+  <!-- 첫 로그인 비밀번호 변경 -->
+  <dialog id="pwDialog">
+    <form id="pwForm" method="dialog">
+      <h2>새 비밀번호를 정해 주세요</h2>
+      <p id="pwReason" class="muted">처음 로그인했거나 관리자가 초기화한 계정이에요. 10자 이상으로 정해 주세요.</p>
+      <label class="field"><span>지금 비밀번호</span><input id="pwCur" type="password" autocomplete="current-password" required></label>
+      <label class="field"><span>새 비밀번호(10자 이상, 영문+숫자)</span><input id="pwNew" type="password" autocomplete="new-password" minlength="10" required></label>
+      <label class="field"><span>새 비밀번호 확인</span><input id="pwNew2" type="password" autocomplete="new-password" minlength="10" required></label>
+      <p id="pwMsg" class="msg" role="alert"></p>
+      <div class="row end"><button type="button" id="pwCancel" class="ghost" hidden>취소</button><button class="primary" id="pwBtn" type="submit">바꾸기</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="logoutDialog"><form method="dialog"><h2>로그아웃하시겠어요?</h2><p id="logoutMsg" class="pre"></p><div class="row end"><button value="cancel" class="ghost">취소</button><button value="ok" class="primary">확인</button></div></form></dialog>
+  <dialog id="noticeDialog"><form method="dialog"><h2 id="noticeTitle"></h2><p id="noticeMsg" class="pre"></p><button class="primary block" value="ok">확인</button></form></dialog>
+  <dialog id="settingsDialog"><form method="dialog">
+    <div class="row between"><h2>계정 설정</h2><button value="cancel" class="ghost small">닫기</button></div>
+    <p id="accountInfo"></p><p id="usageInfo" class="muted pre"></p>
+    <div class="stack"><button type="button" id="btnHistory2" class="ghost">내 판단 기록</button><button type="button" id="btnPlaces" class="ghost">자주 걷는 곳 고치기</button><button type="button" id="btnPw" class="ghost">비밀번호 변경</button></div>
+  </form></dialog>
+  <dialog id="placesDialog" aria-labelledby="placesTitle">
+    <div class="row between"><h2 id="placesTitle">출발지 찾기 <em id="placeCount2"></em></h2><button type="button" id="placesClose" class="ghost small">닫기</button></div>
+    <p class="muted">최대 5곳. 도로명·지번 주소로 찾아도 정확한 주소는 저장하지 않고 시·군·구·동 이름과 약 1km 단위 위치만 저장해요.</p>
+    <form id="placeForm" class="place-form" autocomplete="off">
+      <label class="field" for="placeInput"><span>주소 찾기</span></label>
+      <div class="row"><input id="placeInput" maxlength="80" placeholder="동네·도로명 입력 (예: 망원동)" class="grow" enterkeyhint="search" autocapitalize="none"><button type="submit" id="postcodeOpen" class="ghost small" disabled>🔍 찾기</button></div>
+      <p class="place-steps">① 동네·도로명 입력 → ② 찾기에서 주소 선택 → ③ 저장</p>
+      <div id="postcodeWrap" class="postcode-wrap" hidden><div class="postcode-head"><span>주소 검색</span><button type="button" id="postcodeClose">닫기</button></div><div id="postcodeBox" class="postcode-box"></div></div>
+      <div id="placePicked" class="place-picked" hidden><span>선택한 주소</span><b id="placePickedText"></b></div>
+      <div class="place-acts"><button type="button" id="placeOnce" class="ghost" disabled>이번만 쓰기</button><button type="button" id="placeAdd" class="primary" disabled>자주 걷는 곳에 저장</button></div>
+      <p id="placeMsg" class="msg" role="alert"></p>
+    </form>
+    <ul id="placeList" class="places"></ul>
+  </dialog>
+  <div id="appView" class="app" hidden>
+    <header class="top">
+      <a class="brand" id="brandHome" href="./" aria-label="꼬리길 홈(오늘)으로 가기"><img src="assets/icon.svg" alt="" width="30" height="30"><div><b>꼬리길</b><small>TailTrail</small></div></a>
+      <div class="top-right"><span id="timer" class="timer" hidden></span><button id="btnHistory" class="icon-btn" type="button" aria-label="내 기록" title="내 기록"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></button><button id="btnSettings" class="icon-btn" type="button" aria-label="계정 설정" title="계정 설정"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg></button><a id="btnAdmin" class="ghost admin-link" href="admin.html" hidden>관리자</a><button id="btnLogout" class="ghost" type="button">로그아웃</button></div>
+    </header>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <div id="aiLock" class="ai-lock" role="alert" hidden><h2>잠시 이용이 어려워요</h2><p id="aiLockMsg"></p></div>
+    <main>
+      <!-- 오늘 -->
+      <section id="tab-plan" class="tab active" aria-label="오늘의 산책 판단">
+        <form id="planForm" class="plan-form">
+          <h2>오늘 우리 아이, 나가도 될까요?</h2>
+          <p class="plan-lead">아이와 출발지, 날짜만 고르면 돼요. 기온·노면 열기·미세먼지를 아이 기준으로 보고 알맞은 시간과 길, 가까운 병원·미용·애견샵까지 알려 드려요.</p>
+          <div class="field"><span>우리 아이</span><div id="dogChips" class="dog-chips"></div></div>
+          <div class="field origin-field"><span id="originLabel">출발지</span>
+            <p id="originNow" class="origin-now" aria-live="polite"></p>
+            <div id="placeChips" class="origin-picker" role="radiogroup" aria-labelledby="originLabel"></div>
+            <input id="origin" type="hidden">
+          </div>
+          <div class="field"><span>날짜</span><div id="dateChips" class="chips date-grid" role="radiogroup"></div></div>
+          <button type="submit" id="btnPlan" class="primary block">오늘 산책 판단하기</button>
+          <p id="quotaLeft" class="token-left" aria-live="polite" hidden></p>
+        </form>
+        <div id="planResult" class="result" aria-live="polite"></div>
+      </section>
+
+      <!-- 주변 -->
+      <section id="tab-near" class="tab" aria-label="주변">
+        <h2>가까운 곳</h2>
+        <p class="muted">오늘 탭에서 고른 출발지 기준이에요. 영업 여부와 반려견 출입은 가기 전에 전화나 지도로 확인해 주세요.</p>
+        <div id="nearChips" class="chips wrap" role="radiogroup"></div>
+        <div class="actions"><button type="button" class="act" id="btnEmergency"><span class="act-ico" aria-hidden="true">🚨</span><span class="act-label">응급 · 가까운 동물병원 찾기</span><span class="act-go" aria-hidden="true">›</span></button></div>
+        <div id="nearList"></div>
+      </section>
+
+      <!-- 꼬리일기 -->
+      <section id="tab-diary" class="tab" aria-label="꼬리일기">
+        <h2>꼬리일기</h2>
+        <p class="muted">오늘 산책을 한 줄로 남겨요. 사진과 정확한 위치는 저장하지 않아요.</p>
+        <div id="diaryStats" class="metric-strip small"></div>
+        <form id="diaryForm" class="diary-form">
+          <label class="field"><span>어디서 걸었어요?</span><input id="diaryPlace" maxlength="60" placeholder="예: 서울숲, 동네 한 바퀴"></label>
+          <div class="row"><label class="field"><span>아이</span><select id="diaryDog"></select></label><label class="field"><span>날짜</span><input id="diaryDate" type="date"></label></div>
+          <div class="row"><label class="field"><span>시간(분)</span><input id="diaryMinutes" type="number" inputmode="numeric" min="1" max="300" placeholder="예: 35"></label><label class="field"><span>배변</span><span class="check"><input id="diaryPoop" type="checkbox"> 오늘 했어요</span></label></div>
+          <div class="field"><span>기분 <small class="opt">선택</small></span><div id="diaryMood" class="chips wrap" role="radiogroup"></div></div>
+          <label class="field"><span>한 줄</span><textarea id="diaryNote" rows="2" maxlength="200" placeholder="오늘 산책은 어땠나요?"></textarea></label>
+          <button class="primary block" type="submit">꼬리일기에 남기기</button>
+        </form>
+        <ol id="diaryList" class="diary-list"></ol>
+      </section>
+
+      <!-- 우리 아이 -->
+      <section id="tab-dogs" class="tab" aria-label="우리 아이">
+        <h2>우리 아이 <em id="dogCount" class="count"></em></h2>
+        <p class="muted">크기·나이·단두종·털만 알려 주세요. 같은 날씨라도 아이마다 더위·추위 한계가 달라서 판단이 달라져요. 이름 외 개인정보와 사진은 받지 않아요.</p>
+        <ul id="dogList" class="places"></ul>
+        <form id="dogForm" class="plan-form" autocomplete="off">
+          <h3>아이 추가</h3>
+          <label class="field"><span>이름 <small class="opt">선택</small></span><input id="dogName" maxlength="12" placeholder="예: 보리"></label>
+          <div class="field"><span>크기</span><div id="dogSize" class="chips who-grid" role="radiogroup"></div></div>
+          <div class="field"><span>나이</span><div id="dogAge" class="chips who-grid" role="radiogroup"></div></div>
+          <label class="field check-row"><input id="dogFlat" type="checkbox"> 단두종이에요 <small class="muted">(퍼그·불독·시츄 등, 더위에 더 약해요)</small></label>
+          <label class="field check-row"><input id="dogCoat" type="checkbox"> 털이 두껍고 풍성해요 <small class="muted">(이중모, 더위에 약해요)</small></label>
+          <p id="dogMsg" class="msg" role="alert"></p>
+          <p id="dogFull" class="muted" hidden>아이는 3마리까지 등록할 수 있어요. 하나를 지운 뒤 추가해 주세요.</p>
+          <button type="submit" class="primary block">추가하기</button>
+        </form>
+      </section>
+      <!-- 내 기록 -->
+      <section id="tab-history" class="tab" aria-label="내 기록">
+        <h2>내 판단 기록</h2>
+        <p class="muted">최근 30일 동안 만든 산책 판단을 날짜별로 보여 드려요. <b>다시 보기</b>는 그때 결과를, <b>오늘 다시 판단</b>은 같은 출발지로 오늘 날씨에 맞춰 새로 만들어요.</p>
+        <div id="history" class="history"></div>
+      </section>
+      <!-- 의견 -->
+      <section id="tab-opinion" class="tab" aria-label="의견 보내기">
+        <form id="opinionForm" class="opinion-form" autocomplete="off">
+          <h2>의견 보내기</h2>
+          <p class="muted">꼬리길을 써 보시니 어떠셨나요? 좋았던 점, 불편했던 점, 바라는 점을 편하게 남겨 주세요.</p>
+          <div class="field"><span>만족도(선택)</span><div class="stars" role="radiogroup" aria-label="만족도"><button type="button" class="star" data-v="1" aria-label="1점">★</button><button type="button" class="star" data-v="2" aria-label="2점">★</button><button type="button" class="star" data-v="3" aria-label="3점">★</button><button type="button" class="star" data-v="4" aria-label="4점">★</button><button type="button" class="star" data-v="5" aria-label="5점">★</button></div></div>
+          <label class="field"><span>의견 <em id="opinionCount">0/500</em></span><textarea id="opinionText" maxlength="500" rows="6" placeholder="예) 우리 동네 반려견 놀이터도 알려 주면 좋겠어요."></textarea></label>
+          <p class="muted small-text">비밀번호·집 주소 같은 개인정보는 적지 말아 주세요. 하루 5번까지 보낼 수 있어요.</p>
+          <p id="opinionMsg" class="msg" role="alert"></p>
+          <button type="submit" id="opinionSend" class="primary block">의견 보내기</button>
+        </form>
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="메뉴">
+      <button data-tab="plan" class="active" type="button"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>오늘</button>
+      <button data-tab="near" type="button"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.1-6.5-11a6.5 6.5 0 0 1 13 0c0 4.9-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg></span>주변</button>
+      <button data-tab="diary" type="button"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13 7l4 4"/></svg></span>꼬리일기</button>
+      <button data-tab="dogs" type="button"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="9" r="2"/><circle cx="12" cy="6.5" r="2"/><circle cx="17" cy="9" r="2"/><path d="M12 12c-3 0-5 2.4-5 4.6 0 1.6 1.3 2.4 2.6 2.4 1 0 1.6-.4 2.4-.4s1.4.4 2.4.4c1.3 0 2.6-.8 2.6-2.4C17 14.4 15 12 12 12z"/></svg></span>우리 아이</button>
+      <button data-tab="opinion" type="button"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l-1 3 4-2c1.2.5 2.6.8 4 .8 5 0 8-3.4 8-7.4S17 5 12 5 4 8.4 4 12.4c0 2.2 1 4.1 2.6 5.4"/></svg></span>의견</button>
+    </nav>
+  </div>
+  <script src="config.js?v=0.1.0"></script>
+  <script src="telemetry.js?v=0.1.0"></script>
+  <script src="app.js?v=0.1.0" type="module"></script>
+  <script src="visit.js?v=0.1.0" type="module"></script>
+</body>
+</html>

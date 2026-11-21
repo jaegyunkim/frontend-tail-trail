@@ -1,0 +1,28 @@
+/* 꼬리길 관리자 기본 스타일: frontend-go-fishing style.css 중 관리자 화면이 쓰는 부분만, 꼬리길 색(흰 바탕·코발트·청록)으로 옮겼다 */
+:root { --bg: #FFFFFF; --panel: #FFFFFF; --panel2: #F3F6FA; --panelSoft: #F3F6FA; --line: #DCE1E7; --text: #111317; --ink: #111317; --dim: #4B5563; --sub: #4B5563;
+  --cyan: #2563EB; --blue: #1E3A8A; --acc: #2563EB; --accInk: #1E3A8A; --accSoft: #EAF1FF; --accLine: #BFD3FB; --ok: #0F766E; --warn: #B45309; --info: #2563EB; --bad: #B91C1C;
+  --grad: linear-gradient(135deg, #2563EB, #1E3A8A); --r: 0px; color-scheme: light; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Plus Jakarta Sans', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.top { position: sticky; top: 0; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: max(10px, env(safe-area-inset-top)) 14px 10px; background: rgba(255,255,255,.96); border-bottom: 2px solid var(--ink); backdrop-filter: blur(6px); }
+.brand { display: flex; gap: 10px; align-items: center; min-width: 0; } .brand h1 { font-size: 17px; margin: 0; font-weight: 800; letter-spacing: -.015em; } .brand p { margin: 0; font-size: 11.5px; color: var(--sub); }
+.top-right { display: flex; align-items: center; gap: 8px; }
+.timer { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; padding: 4px 9px; border: 1px solid var(--accLine); background: var(--accSoft); color: var(--accInk); }
+.timer.warn { color: var(--warn); border-color: #FCD34D; background: #FFFBEB; } .timer.crit { color: var(--bad); border-color: #FCA5A5; background: #FEF2F2; }
+.link-btn { color: var(--accInk); font-weight: 700; font-size: 13px; text-decoration: none; }
+.toast { margin: 8px 12px 0; padding: 8px 12px; font-size: 13px; background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; }
+.card { background: #fff; border: 1px solid var(--line); border-top: 2px solid var(--ink); padding: 14px; margin-bottom: 12px; }
+.card h2, .card h3 { margin: 0 0 8px; font-size: 16px; } .sub, .card .sub { font-size: 12.5px; color: var(--sub); }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; margin: 0; font-size: 13.5px; } .kv dt { color: var(--sub); } .kv dd { margin: 0; overflow-wrap: anywhere; }
+.st-error { color: var(--bad); }
+dialog { border: 1px solid var(--line); border-top: 3px solid var(--accInk); background: #fff; color: var(--ink); max-width: 440px; width: calc(100% - 24px); padding: 18px; }
+dialog::backdrop { background: rgba(17,19,23,.45); }
+.settings h2 { margin: 0 0 6px; font-size: 17px; } .settings p { font-size: 13px; } .settings .hint { color: var(--sub); font-size: 12px; }
+.settings label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--sub); margin-bottom: 8px; }
+.settings input, .settings select { background: #fff; border: 1px solid var(--line); padding: 10px; font-size: 16px; min-height: 44px; }
+.settings .row { display: flex; gap: 8px; margin: 12px 0 0; } .settings button { flex: 1; min-height: 44px; padding: 9px; border: 0; background: var(--accInk); color: #fff; font-weight: 700; cursor: pointer; }
+.settings .ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.settings .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
