@@ -652,3 +652,5 @@ button.act.act-primary .act-go { color: #fff; }
 .places .links .link-btn { padding: 6px 10px; font-size: 13px; min-height: 38px; }
 #dogForm > .primary.block { position: static !important; bottom: auto !important; box-shadow: none !important; margin-top: 14px; }
 #diaryForm > .primary.block { position: static !important; box-shadow: none !important; }
+
+.pet-cond { margin: 6px 0 0; font-size: 13px; color: #2F6B4F; line-height: 1.5; }

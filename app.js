@@ -122,7 +122,9 @@ function weatherCard(w, hours) {
 const telLink = p => p ? `<a class="link-btn" href="tel:${esc(String(p).replace(/[^0-9+]/g, ''))}"><span aria-hidden="true">📞</span>전화<b aria-hidden="true">↗</b></a>` : '';
 const mapLinks = (name, lat, lon) => Number.isFinite(+lat) && Number.isFinite(+lon) ? `<a class="link-btn" href="https://map.kakao.com/link/map/${encodeURIComponent(name)},${lat},${lon}" target="_blank" rel="noopener"><span aria-hidden="true">🗺️</span>지도<b aria-hidden="true">↗</b></a><a class="link-btn" href="https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lon}" target="_blank" rel="noopener"><span aria-hidden="true">🧭</span>길찾기<b aria-hidden="true">↗</b></a>` : '';
 /** 가까운 곳 목록 한 줄(이름·거리·전화·지도). 영업·출입은 확인하지 못한 값이라 안내 문구를 함께 둔다 */
-const placeRow = x => `<li><span>${safeUrl(x.url) ? `<a class="ext" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}${x.open24 ? ' <span class="tag go">24시·응급 표시</span>' : ''} <small class="muted">${esc(x.category ?? x.type ?? '')}</small><br><small class="muted">${esc(x.address ?? '')}</small><div class="links">${telLink(x.phone ?? x.tel)}${mapLinks(x.name, x.lat, x.lon)}</div></span><span class="d">${x.distanceM != null ? km(x.distanceM) : ''}</span></li>`;
+const licBadge = x => x.licensed === true ? ` <span class="tag go" title="행정안전부 영업 중 등록 업소${x.licensedOn ? ' · 인허가 ' + esc(String(x.licensedOn).slice(0, 7).replace('-', '.')) : ''}">인허가 확인</span>` : x.licensed === false ? ' <small class="muted">인허가 정보 미확인</small>' : '';
+const petLine = x => x.pet ? `<p class="pet-cond">🐾 ${[x.pet.allowed, x.pet.breeds].filter(Boolean).map(esc).join(' · ')}${x.pet.need ? `<br>필요: ${esc(x.pet.need)}` : ''}${x.pet.etc ? `<br><small class="muted">${esc(x.pet.etc.split('\n')[0])}</small>` : ''}</p>` : '';
+const placeRow = x => `<li><span>${safeUrl(x.url) ? `<a class="ext" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}${x.open24 ? ' <span class="tag go">24시·응급 표시</span>' : ''}${licBadge(x)} <small class="muted">${esc(x.category ?? x.type ?? '')}</small><br><small class="muted">${esc(x.address ?? '')}</small>${petLine(x)}<div class="links">${telLink(x.phone ?? x.tel)}${mapLinks(x.name, x.lat, x.lon)}</div></span><span class="d">${x.distanceM != null ? km(x.distanceM) : ''}</span></li>`;
 const nearSection = (arr, title, note = '') => arr?.length ? `<div class="sec"><h3>${title}<small>${note}</small></h3><ul class="places">${arr.map(placeRow).join('')}</ul></div>` : '';
 
 // 시간대 막대: 06~21시를 색(좋음·주의·위험)으로 한눈에
@@ -165,11 +167,11 @@ function renderPlan({ id, plan: p }) {
     <div class="sec emergency"><h3>🚨 응급 · 가까운 동물병원 <small>${p.emergency.open24.length ? '24시·응급 표시가 있는 곳 포함' : '가장 가까운 곳'}</small></h3>
       ${p.emergency.open24.length ? `<ul class="places">${p.emergency.open24.map(placeRow).join('')}</ul>` : ''}${p.emergency.nearest.length ? `<ul class="places">${p.emergency.nearest.filter(x => !x.open24).map(placeRow).join('')}</ul>` : '<p class="empty">가까운 동물병원을 찾지 못했어요</p>'}
       <p class="muted small-text">${esc(p.emergency.note)}</p></div>
-    ${nearSection(vets.filter(v => !p.emergency.nearest.some(n => n.name === v.name)), '🏥 동물병원', '6km 안')}
+    ${nearSection(vets.filter(v => !p.emergency.nearest.some(n => n.name === v.name)), '🏥 동물병원', '6km 안 · 인허가 확인')}
     ${nearSection(p.nearby.groomers, '✂️ 애견 미용', '4km 안')}
     ${nearSection(p.nearby.shops, '🛍️ 애견샵·용품', '4km 안')}
-    ${p.nearby.petPlaces?.length ? nearSection(p.nearby.petPlaces, '🐾 반려동물 동반 가능 장소', '한국관광공사') : ''}
-    <p class="muted small-text place-note">영업 여부와 반려견 출입은 확인하지 못한 정보예요. 가기 전에 전화나 지도 링크로 확인해 주세요.</p>
+    ${p.nearby.petPlaces?.length ? nearSection(p.nearby.petPlaces, '🐾 반려동물 동반 가능 장소', '한국관광공사 · 동반 조건 확인') : ''}
+    <p class="muted small-text place-note"><b>인허가 확인</b>은 행정안전부 영업 중 등록 업소와 일치한다는 뜻이에요. 영업시간·휴무와 반려견 출입은 확인하지 못한 정보라 가기 전에 전화나 지도 링크로 확인해 주세요.</p>
     <div class="actions"><button type="button" class="act" id="btnToDiary">${actBtn('꼬리일기에 남기기', '✍️')}</button></div>
     <div class="sources">${p.sources.map(x => `<span class="${x.status === 'ok' ? '' : 'bad'}">${esc(x.provider)} ${x.status === 'ok' ? '✓' : esc(x.status)}</span>`).join('')}<p>${esc(p.attribution)}</p></div>`;
   $('#planResult').querySelectorAll('[data-diary]').forEach(b => b.onclick = e => { e.preventDefault(); const c = courses[Number(b.dataset.diary)]; prefillDiary({ place: c?.name, minutes: w.minutes }); });
@@ -185,7 +187,7 @@ function bubble(anchor, msg, kind = 'warn') {
   anchor.insertAdjacentElement('afterend', b);
 }
 // ---------- 주변: 공원·동물병원·미용·애견샵·응급(출발지 기준) ----------
-const NEAR_TYPES = [{ id: 'park', emoji: '🌳', label: '공원' }, { id: 'vet', emoji: '🏥', label: '동물병원' }, { id: 'groom', emoji: '✂️', label: '미용' }, { id: 'shop', emoji: '🛍️', label: '애견샵' }];
+const NEAR_TYPES = [{ id: 'park', emoji: '🌳', label: '공원' }, { id: 'vet', emoji: '🏥', label: '동물병원' }, { id: 'groom', emoji: '✂️', label: '미용' }, { id: 'shop', emoji: '🛍️', label: '애견샵' }, { id: 'pharmacy', emoji: '💊', label: '동물약국' }, { id: 'boarding', emoji: '🏨', label: '펫호텔·유치원' }];
 let nearType = 'park';
 async function originCoords() {
   const v = originValue(); if (!v) throw new Error('오늘 탭에서 출발지를 먼저 골라 주세요');
@@ -199,7 +201,7 @@ async function loadNearby(type = nearType) {
   try {
     const c = await originCoords();
     const r = await api(`/v1/nearby?near=${encodeURIComponent(c)}&type=${type}&limit=10`);
-    el.innerHTML = r.status !== 'ok' ? `<p class="msg">${esc(r.message ?? '지금은 불러오지 못했어요')}</p>` : (r.items.length ? `<ul class="places">${r.items.map(placeRow).join('')}</ul><p class="muted small-text">${esc(r.note ?? '')}</p>` : '<p class="empty">가까운 곳을 찾지 못했어요</p>');
+    el.innerHTML = r.status !== 'ok' ? `<p class="msg">${esc(r.message ?? '지금은 불러오지 못했어요')}</p>` : (r.items.length ? `<ul class="places">${r.items.map(placeRow).join('')}</ul><p class="muted small-text">${esc(r.note ?? '')}${r.licensed?.checked === false && r.licensed.reason ? `<br>${esc(r.licensed.reason)}` : ''}</p>` : '<p class="empty">가까운 곳을 찾지 못했어요</p>');
   } catch (e) { el.innerHTML = `<p class="msg">${esc(e.message)}</p>`; }
 }
 $('#btnEmergency').onclick = async () => {
