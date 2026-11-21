@@ -654,3 +654,12 @@ button.act.act-primary .act-go { color: #fff; }
 #diaryForm > .primary.block { position: static !important; box-shadow: none !important; }
 
 .pet-cond { margin: 6px 0 0; font-size: 13px; color: #2F6B4F; line-height: 1.5; }
+
+.dog-welcome { background: #EAF1EA; border-radius: var(--r); padding: 14px 16px; margin: 0 0 14px; color: #2F6B4F; }
+.dog-welcome p { margin: 6px 0 0; font-size: 14px; color: var(--ink2); }
+#dogList .dog-acts { flex-wrap: wrap; justify-content: flex-end; }
+.ghost.danger { color: #B23A3A; border-color: #E4B4B0; }
+.dog-form-acts { display: flex; gap: 10px; margin-top: 14px; }
+.dog-form-acts .primary { flex: 1; }
+#dogForm > .primary.block, #dogForm .dog-form-acts .primary { position: static !important; box-shadow: none !important; }
+.check-row { flex-wrap: wrap; } .check-row small { flex-basis: 100%; padding-left: 30px; margin-top: -2px; }

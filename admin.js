@@ -1,8 +1,8 @@
-import { ROLE_LABEL, policyText, limitsText, DAY_NOTE } from './role-policy.js?v=0.1.1';
-import { approvalMailto } from './approval-email.js?v=0.1.1';
-import { visitsHtml } from './admin-visits.js?v=0.1.1';
+import { ROLE_LABEL, policyText, limitsText, DAY_NOTE } from './role-policy.js?v=0.1.3';
+import { approvalMailto } from './approval-email.js?v=0.1.3';
+import { visitsHtml } from './admin-visits.js?v=0.1.3';
 // 꼬리길 관리자 화면(backend-go-fishing/frontend-go-fishing 운영관리와 동일 구성 + 플랜·코스 탭): 계정·세션·사용량·대화 로그·로그인/작업 기록. 관리자 계정으로 로그인한 탭에서만 동작.
-import { state, api, health, startTimer, syncAccount, setOnAuthLost, logout } from './auth.js?v=0.1.1';
+import { state, api, health, startTimer, syncAccount, setOnAuthLost, logout } from './auth.js?v=0.1.3';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const dt = v => v ? new Date(v).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
@@ -97,7 +97,7 @@ const views = {
  view.querySelectorAll('[data-review]').forEach(b=>b.onclick=async()=>{if(!confirm(b.dataset.review==='approve'?'이 사용자를 승인할까요?':'이 신청을 거절할까요?'))return;b.disabled=true;try{const out=await api('/v1/admin/registrations/'+b.dataset.id+'/review',{method:'POST',body:JSON.stringify({action:b.dataset.review})});if(out.tempPassword)await showSecret(out.user.loginId+' 승인 완료',out.tempPassword,out.user.loginId);await views.requests();}catch(e){note(e.message,true);b.disabled=false;}});
  },
  async model(){const {llm,credits,ai}=await api('/v1/admin/model');
- view.innerHTML='<div class="card"><h2>서비스 상태</h2><p><span class="pill '+(ai.available?'ok':'bad')+'">'+(ai.available?'이용 가능':'이용 중지(크레딧 소진)')+'</span></p>'+(ai.available?'':'<p class="sub">사유: '+esc(ai.reason||'')+(ai.since?' · '+dt(ai.since)+'부터':'')+'</p><p class="sub">베타 테스터 화면은 모든 입력이 잠기고 안내 문구가 표시돼요.</p>')+'<p class="sub">잔여 크레딧이 '+n(ai.threshold)+' 이하이거나 GPT가 크레딧 부족으로 응답을 거부하면 자동으로 이용을 멈춰요.</p><div class="acts"><button id="aiRecheck">GPT 다시 확인·재개</button></div></div>'
+ view.innerHTML='<div class="card"><h2>서비스 상태</h2><p><span class="pill '+(ai.available?'ok':'bad')+'">'+(ai.available?'이용 가능':'이용 중지(크레딧 소진)')+'</span></p>'+(ai.available?'':'<p class="sub">사유: '+esc(ai.reason||'')+(ai.since?' · '+dt(ai.since)+'부터':'')+'</p><p class="sub">베타 테스터 화면은 모든 입력이 잠기고 안내 문구가 표시돼요.</p>')+'<p class="sub">잔여 크레딧이 '+n(ai.threshold)+' 이하이거나 GPT가 크레딧 부족으로 응답을 거부하면 이 상태가 \'이용 중지\'로 바뀌어요(AI 기능을 붙일 때를 위한 표시).</p><div class="acts"><button id="aiRecheck">GPT 다시 확인·재개</button></div></div>'
   +'<div class="card" id="llmCard"><h2>AI 연결</h2><p class="sub">불러오는 중…</p></div>'
  +'<div class="card"><h2>MonoGPT 잔여 크레딧</h2><p>'+n(credits.remaining)+' / '+n(credits.total)+'</p><p class="sub">'+dt(credits.checkedAt)+' 확인 · '+esc(credits.source||'')+' · 실시간 아님</p><a href="https://monogpt.kr/apps/mono-router" target="_blank" rel="noopener noreferrer">MonoGPT에서 최신 잔액 확인</a><form id="creditForm" class="grid2" style="margin-top:10px"><label>잔여 크레딧<input name="remaining" type="number" min="0" required value="'+(credits.remaining??'')+'"></label><label>전체 크레딧<input name="total" type="number" min="1" required value="'+(credits.total??'')+'"></label><button>확인한 잔액 저장</button></form></div>';
  $('#creditForm').onsubmit=async ev=>{ev.preventDefault();try{const fd=Object.fromEntries(new FormData(ev.target));await api('/v1/admin/model/credit',{method:'POST',body:JSON.stringify(fd)});note('잔액을 저장했어요');views.model();}catch(err){note(err.message,true);}};
@@ -280,6 +280,20 @@ const views = {
     ${opinions.map(o => `<tr><td>${dt(o.createdAt)}</td><td>${esc(o.loginId ?? '')}</td><td>${o.rating ? '★'.repeat(o.rating) + '☆'.repeat(5 - o.rating) : '<span class="sub">-</span>'}</td><td style="white-space:pre-wrap">${esc(o.text)}</td></tr>`).join('')}</table></div>` : '<div class="card"><p class="sub">아직 받은 의견이 없어요.</p></div>'}`;
     bindBack();
   },
+async skills() {
+    const r = await api('/v1/admin/skills');
+    const ul = a => `<ul class="sk-ul">${(a ?? []).map(x => `<li>${esc(x)}</li>`).join('') || '<li class="sub">없음</li>'}</ul>`;
+    view.innerHTML = `<div class="tool"><h2>에이전트 스킬 ${r.skills.length}개 <span class="sub">v${esc(r.version)}</span></h2></div>
+    <p class="sub">${esc(r.framework)}. 원본은 백엔드 <code>skills/registry.json</code>, 산책 판단 기록에는 의도에 맞는 스킬 id가 함께 저장돼요.</p>
+    <details class="card"><summary><b>공통 원칙</b></summary>${ul(r.principles)}</details>
+    ${r.skills.map(s => `<details class="card sk"><summary><b>${esc(s.name)}</b> <code>${esc(s.id)}</code><div class="sub">${esc(s.goal)}</div><div class="sk-tags">${s.intents.map(i => `<span class="pill ok">${esc(i)}</span>`).join('')}</div></summary>
+      <h4>1. API 명세</h4><div class="scroll"><table class="tbl"><tr><th>호출</th><th>입력</th><th>출력</th></tr>${s.endpoints.map(e => `<tr><td><code>${esc(e.method)} ${esc(e.path)}</code></td><td class="sub">${esc(e.input)}</td><td class="sub">${esc(e.output)}</td></tr>`).join('')}</table></div>
+      <p class="sub">제공기관: ${s.providers.map(esc).join(' · ')}</p>
+      <h4>2. 의도</h4>${ul(s.examples.map(x => '"' + x + '"'))}
+      <h4>3. 문맥</h4><p class="sub">필수</p>${ul(s.context.required)}<p class="sub">선택</p>${ul(s.context.optional)}${s.context.memory?.length ? `<p class="sub">기억·상태</p>${ul(s.context.memory)}` : ''}
+      <h4>4. 실행 조건</h4>${ul(s.conditions)}<p class="sub">실패 시 대체</p>${ul(s.fallbacks)}
+      <h4>참고한 외부 MCP</h4>${ul(s.references)}</details>`).join('')}`;
+  },
   async plans() {
     const [{ plans }, h] = await Promise.all([api('/v1/admin/plans?limit=100'), api('/healthz', { noAuth: true })]);
     view.innerHTML = `<div class="tool"><h2>꼬리길 산책 판단(최근 100)</h2><div class="acts"><button id="syncCourses">두루누비 코스 지금 동기화</button></div></div>
@@ -353,7 +367,7 @@ addEventListener('resize', () => { clearTimeout(visitsW); visitsW = setTimeout((
     syncAccount(me);
     $('#who').textContent = `${me.user.displayName}(${me.user.loginId}) · 세션 ${me.limits.sessionMinutes}분`;
     startTimer($('#timer'), { onWarn: s => note(`약 ${s}초 뒤 자동 로그아웃돼요`), onExpire: () => { logout('expired'); gone('이용 시간이 끝나 자동 로그아웃됐어요.'); } });
-    $('#userPageLink').textContent = innerWidth <= 720 ? '서비스로' : '서비스 화면으로';
+    $('#userPageLink').textContent = '일반 페이지로';
     go('users');
   } catch (e) { if (e.status !== 401) gone(e.message); }
 })();

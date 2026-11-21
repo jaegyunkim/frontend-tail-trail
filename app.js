@@ -1,12 +1,12 @@
-import { ROLE_LABEL, DAY_NOTE, policyText, logoutUsage, nextLoginText, timesKo } from './role-policy.js?v=0.1.1';
+import { ROLE_LABEL, DAY_NOTE, policyText, logoutUsage, nextLoginText, timesKo } from './role-policy.js?v=0.1.3';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
-import { state, api, health, login, logout, startTimer, setOnAuthLost, setOnMustChange, saveAuth, syncAccount, remaining, sessionMinutes, loginQuota } from './auth.js?v=0.1.1';
+import { state, api, health, login, logout, startTimer, setOnAuthLost, setOnMustChange, saveAuth, syncAccount, remaining, sessionMinutes, loginQuota } from './auth.js?v=0.1.3';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const safeUrl = u => /^https?:\/\//.test(u ?? '') ? u : null;
 const km = m => m == null ? '-' : m >= 1000 ? (Math.round(m / 100) / 10) + 'km' : Math.round(m) + 'm';
-let timer = null, lastPlan = null, dogOptions = { sizes: [], ages: [], moods: [], maxDogs: 3 }, dogs = [];
+let timer = null, lastPlan = null, dogOptions = { sizes: [], ages: [], moods: [], maxDogs: 5 }, dogs = [];
 const sel = { date: 'today', dogId: null };
 const GC = { go: 'go', time: 'caution', short: 'caution', indoor: 'indoor' }; // 판정 → 색 계열(초록·주황·빨강)
 
@@ -29,56 +29,65 @@ function drawForm() {
 }
 const dateValue = () => ({ today: kstDate(0), tomorrow: kstDate(1), after: kstDate(2), sat: nextSaturday(), sun: kstDate(Math.round((Date.parse(nextSaturday()) - Date.parse(kstDate(0))) / 86400000) + 1) })[sel.date];
 
-// ---------- 우리 아이(최대 3마리): 오늘 탭 칩 + 우리 아이 탭 ----------
+// ---------- 우리 아이(최대 5마리, 처음 등록·추가 등록·수정·삭제): 오늘 탭 칩 + 우리 아이 탭 ----------
 const sizeLabel = id => dogOptions.sizes.find(s => s.id === id)?.label ?? id, ageLabel = id => dogOptions.ages.find(a => a.id === id)?.label ?? id;
 const dogSub = d => [sizeLabel(d.size), ageLabel(d.age), d.flatFace ? '단두종' : '', d.thickCoat ? '두꺼운 털' : ''].filter(Boolean).join('·');
 function drawDogChips() {
   const el = $('#dogChips');
-  if (!dogs.length) { el.innerHTML = `<p class="dog-empty">아직 등록한 아이가 없어요. <b>성견 중형</b>을 기준으로 판단해요.</p><button type="button" class="origin-link" data-go="dogs">${ORIGIN_ICON.plus}우리 아이 등록하기</button>`; return; }
-  el.innerHTML = '<div class="chips wrap" role="radiogroup" aria-label="오늘 산책할 아이"></div>';
+  if (!dogs.length) { el.innerHTML = `<p class="dog-empty">아직 등록한 아이가 없어요. 등록하지 않으면 <b>성견 중형</b>을 기준으로 판단해요.</p><button type="button" class="origin-link" data-go="dogs">${ORIGIN_ICON.plus}우리 아이 처음 등록하기</button>`; return; }
+  el.innerHTML = '<div class="chips wrap" role="radiogroup" aria-label="오늘 산책할 아이"></div>' + `<button type="button" class="origin-link" data-go="dogs">${ORIGIN_ICON.plus}${dogFull() ? '아이 관리(수정·삭제)' : '아이 추가·관리'}</button>`;
   chips(el.firstElementChild, dogs.map(d => ({ id: String(d.id), emoji: '🐕', label: d.name, sub: dogSub(d) })), String(sel.dogId ?? dogs.find(d => d.selected)?.id ?? dogs[0].id), v => { if (v) sel.dogId = Number(v); });
   if (sel.dogId == null) sel.dogId = dogs.find(d => d.selected)?.id ?? dogs[0].id;
 }
 async function loadDogs() {
   try { const r = await api('/v1/me/dogs'); dogs = r.dogs; dogOptions.maxDogs = r.max ?? dogOptions.maxDogs; if (!dogs.some(d => d.id === sel.dogId)) sel.dogId = dogs.find(d => d.selected)?.id ?? dogs[0]?.id ?? null; drawDogChips(); renderDogs(); } catch { /* 부가 기능: 못 불러와도 기본 아이로 판단 */ }
 }
-let dogDraft = { size: 'medium', age: 'adult' };
-function renderDogs() {
+let dogDraft = { size: 'medium', age: 'adult' }, dogEditId = null;
+const dogFull = () => dogs.length >= dogOptions.maxDogs;
+function drawDogDraftChips() {
   chips($('#dogSize'), dogOptions.sizes.map(s => ({ id: s.id, label: s.label, sub: s.hint })), dogDraft.size, v => { dogDraft.size = v ?? dogDraft.size; });
   chips($('#dogAge'), dogOptions.ages.map(a => ({ id: a.id, label: a.label, sub: a.hint })), dogDraft.age, v => { dogDraft.age = v ?? dogDraft.age; });
-  $('#dogCount').textContent = `${dogs.length}/${dogOptions.maxDogs}`;
-  $('#dogList').innerHTML = dogs.map(d => `<li><span>${d.selected ? '✓ ' : ''}<b>${esc(d.name)}</b> <small class="muted">${esc(dogSub(d))}</small></span><span class="row"><button type="button" class="ghost small" data-pick="${d.id}">${d.selected ? '기본 아이' : '기본으로'}</button><button type="button" class="ghost small" data-del="${d.id}" aria-label="${esc(d.name)} 지우기">지우기</button></span></li>`).join('') || '<li class="muted">등록한 아이가 없어요. 아래에서 추가해 주세요.</li>';
-  $('#dogList').querySelectorAll('[data-pick]').forEach(b => b.onclick = async () => { try { dogs = (await api(`/v1/me/dogs/${b.dataset.pick}/select`, { method: 'POST', body: '{}' })).dogs; sel.dogId = Number(b.dataset.pick); drawDogChips(); renderDogs(); } catch (e) { toast(e.message); } });
-  $('#dogList').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { try { dogs = (await api(`/v1/me/dogs/${b.dataset.del}/delete`, { method: 'POST', body: '{}' })).dogs; if (!dogs.some(d => d.id === sel.dogId)) sel.dogId = null; drawDogChips(); renderDogs(); } catch (e) { toast(e.message); } });
-  $('#dogForm').querySelector('button[type=submit]').disabled = dogs.length >= dogOptions.maxDogs;
-  $('#dogFull').hidden = dogs.length < dogOptions.maxDogs;
 }
+/** 등록 폼 열기: dog 가 있으면 수정, 없으면 등록(아이가 한 마리도 없으면 '처음 등록', 있으면 '추가 등록') */
+function openDogForm(dog = null) {
+  dogEditId = dog?.id ?? null; const first = !dogs.length;
+  dogDraft = dog ? { size: dog.size, age: dog.age } : { size: 'medium', age: 'adult' };
+  $('#dogName').value = dog?.name ?? ''; $('#dogFlat').checked = Boolean(dog?.flatFace); $('#dogCoat').checked = Boolean(dog?.thickCoat); $('#dogMsg').textContent = '';
+  $('#dogFormTitle').textContent = dog ? `${dog.name} 정보 수정` : first ? '우리 아이 처음 등록' : `아이 추가 등록 (${dogs.length + 1}/${dogOptions.maxDogs}번째)`;
+  $('#dogSubmit').textContent = dog ? '수정 저장' : first ? '첫 아이 등록하기' : '추가 등록하기';
+  $('#dogCancel').hidden = first && !dog; // 처음 등록은 취소할 곳이 없다
+  drawDogDraftChips(); $('#dogForm').hidden = false; $('#dogAddWrap').hidden = true; syncClearButtons(); renderDogs();
+  if (dog || !first) $('#dogForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function closeDogForm() { dogEditId = null; $('#dogForm').hidden = true; $('#dogMsg').textContent = ''; renderDogs(); }
+function renderDogs() {
+  $('#dogCount').textContent = `${dogs.length}/${dogOptions.maxDogs}`;
+  $('#dogList').innerHTML = dogs.map(d => `<li><span>${d.selected ? '✓ ' : ''}<b>${esc(d.name)}</b>${d.selected ? ' <span class="tag go">기본</span>' : ''}<br><small class="muted">${esc(dogSub(d))}</small></span><span class="row dog-acts"><button type="button" class="ghost small" data-edit="${d.id}" aria-label="${esc(d.name)} 수정">수정</button>${d.selected ? '' : `<button type="button" class="ghost small" data-pick="${d.id}" aria-label="${esc(d.name)}를 기본 아이로">기본으로</button>`}<button type="button" class="ghost small danger" data-del="${d.id}" aria-label="${esc(d.name)} 삭제">삭제</button></span></li>`).join('');
+  $('#dogWelcome').hidden = dogs.length > 0 || !$('#dogForm').hidden && dogEditId != null;
+  const formOpen = !$('#dogForm').hidden;
+  $('#dogAddWrap').hidden = formOpen || dogFull() || !dogs.length;
+  $('#dogFull').hidden = !dogFull() || formOpen;
+  $('#btnDogAdd').querySelector('.act-label').textContent = `아이 추가 등록 (${dogs.length}/${dogOptions.maxDogs})`;
+  $('#dogList').querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openDogForm(dogs.find(d => d.id === Number(b.dataset.edit))));
+  $('#dogList').querySelectorAll('[data-pick]').forEach(b => b.onclick = async () => { try { dogs = (await api(`/v1/me/dogs/${b.dataset.pick}/select`, { method: 'POST', body: '{}' })).dogs; sel.dogId = Number(b.dataset.pick); drawDogChips(); renderDogs(); toast('기본 아이를 바꿨어요'); } catch (e) { toast(e.message); } });
+  $('#dogList').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    const d = dogs.find(x => x.id === Number(b.dataset.del));
+    if (!confirm(`'${d.name}'을(를) 삭제할까요?\n등록한 정보만 지워지고, 꼬리일기 기록은 남아요.`)) return;
+    try { dogs = (await api(`/v1/me/dogs/${d.id}/delete`, { method: 'POST', body: '{}' })).dogs; if (!dogs.some(x => x.id === sel.dogId)) sel.dogId = dogs.find(x => x.selected)?.id ?? dogs[0]?.id ?? null; if (dogEditId === d.id) { dogEditId = null; $('#dogForm').hidden = true; } drawDogChips(); toast(`'${d.name}'을(를) 삭제했어요`); if (!dogs.length) openDogForm(); renderDogs(); } catch (e) { toast(e.message); }
+  });
+}
+$('#btnDogAdd').onclick = () => openDogForm();
+$('#dogCancel').onclick = closeDogForm;
 $('#dogForm').onsubmit = async e => {
   e.preventDefault(); const m = $('#dogMsg'); m.textContent = '';
+  const body = JSON.stringify({ name: $('#dogName').value.trim(), size: dogDraft.size, age: dogDraft.age, flatFace: $('#dogFlat').checked, thickCoat: $('#dogCoat').checked });
+  const first = !dogs.length, editing = dogEditId != null, btn = $('#dogSubmit'); btn.disabled = true;
   try {
-    const r = await api('/v1/me/dogs', { method: 'POST', body: JSON.stringify({ name: $('#dogName').value.trim(), size: dogDraft.size, age: dogDraft.age, flatFace: $('#dogFlat').checked, thickCoat: $('#dogCoat').checked }) });
-    dogs = r.dogs; sel.dogId = r.dog.id; $('#dogName').value = ''; $('#dogFlat').checked = false; $('#dogCoat').checked = false; drawDogChips(); renderDogs(); toast(`'${r.dog.name}'을(를) 등록했어요`);
-  } catch (err) { m.textContent = err.message; }
+    if (editing) { const r = await api(`/v1/me/dogs/${dogEditId}/update`, { method: 'POST', body }); dogs = r.dogs; drawDogChips(); closeDogForm(); toast(`'${r.dog.name}' 정보를 수정했어요`); }
+    else { const r = await api('/v1/me/dogs', { method: 'POST', body }); dogs = r.dogs; sel.dogId = r.dog.id; drawDogChips(); closeDogForm(); toast(first ? `'${r.dog.name}'을(를) 처음 등록했어요. 이제 오늘 산책을 판단해 볼까요?` : `'${r.dog.name}'을(를) 추가했어요`); if (first) go('plan'); }
+  } catch (err) { m.textContent = err.message; } finally { btn.disabled = false; }
 };
 
-// ---------- 플랜 ----------
-// ---------- 출발지: 칩 한 줄로 고른다([◎ 현재 위치] [자주 걷는 곳…] [＋ 주소로 추가]) ----------
-// 현재 위치는 화면에 장소 이름(예: 경남 양산 동면 금오13길, 번지 제외)을 보여 주고, 계산에는 좌표를 쓴다.
-let here = (() => { try { return JSON.parse(localStorage.getItem('tailtrail.here') || 'null'); } catch { return null; } })(); // { label, coords:'위도,경도' }
-let locating = false;
-const originValue = () => { const v = $('#origin').value.trim(); return here && v === here.label ? here.coords : v; };
-function setOrigin(v) { $('#origin').value = String(v ?? '').trim(); renderPlaces(); }
-function locateHere() {
-  if (!navigator.geolocation) return toast('이 기기에서는 위치를 쓸 수 없어요. 주소로 추가해 주세요');
-  if (locating) return; locating = true; renderPlaces();
-  navigator.geolocation.getCurrentPosition(async p => {
-    const lat = p.coords.latitude.toFixed(4), lon = p.coords.longitude.toFixed(4), coords = `${lat},${lon}`;
-    let label = null;
-    try { label = (await api(`/v1/place-name?lat=${lat}&lon=${lon}`, { timeoutMs: 10000 })).label; } catch { /* 이름을 못 찾으면 기본 문구 */ }
-    here = { label: label || '현재 위치', coords }; localStorage.setItem('tailtrail.here', JSON.stringify(here));
-    locating = false; setOrigin(here.label);
-  }, () => { locating = false; renderPlaces(); toast('위치 권한이 없어요. 주소로 추가해 주세요'); }, { timeout: 8000, maximumAge: 600000 });
-}
 // ---------- 오늘의 산책 판단 만들기 ----------
 
 $('#planForm').onsubmit = async e => {
@@ -245,7 +254,7 @@ function go(tab) {
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   if (tab === 'near') loadNearby();
   if (tab === 'diary') loadDiary();
-  if (tab === 'dogs') renderDogs();
+  if (tab === 'dogs') { if (!dogs.length && $('#dogForm').hidden) openDogForm(); else renderDogs(); }
   if (tab === 'history') loadHistory();
   window.scrollTo({ top: 0 });
 }

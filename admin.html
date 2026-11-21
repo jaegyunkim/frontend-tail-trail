@@ -8,24 +8,24 @@
   <title>꼬리길 · 관리자</title>
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="admin-base.css?v=0.1.1">
-  <link rel="stylesheet" href="admin.css?v=0.1.1">
+  <link rel="stylesheet" href="admin-base.css?v=0.1.3">
+  <link rel="stylesheet" href="admin.css?v=0.1.3">
 </head>
 <body>
   <div class="admin">
     <header class="top">
       <div class="brand"><img src="assets/icon.svg" alt="" width="30" height="30"><div><h1>꼬리길 관리자</h1><p id="who">확인 중…</p></div></div>
-      <div class="top-right"><span id="timer" class="timer" hidden>30:00</span><a id="userPageLink" class="link-btn" href="./" hidden>서비스 화면으로</a></div>
+      <div class="top-right"><span id="timer" class="timer" hidden>30:00</span><a id="userPageLink" class="link-btn" href="./" hidden>일반 페이지로</a></div>
     </header>
     <nav class="atabs" id="atabs">
-      <button data-v="requests">가입 승인</button><button data-v="users" class="active">사용자</button><button data-v="sessions">세션</button><button data-v="usage">사용량</button><button data-v="visits">접속현황</button>
-      <button data-v="chats">판단 로그</button><button data-v="logins">로그인 기록</button><button data-v="reports">리포트</button><button data-v="plans">플랜·코스</button><button data-v="opinions">의견 보내기</button><button data-v="actions">작업 기록</button>
+      <button data-v="requests">신청 승인</button><button data-v="model">AI 연결</button><button data-v="users" class="active">사용자</button><button data-v="sessions">세션</button><button data-v="usage">사용량</button><button data-v="visits">접속현황</button>
+      <button data-v="chats">대화 로그</button><button data-v="logins">로그인 기록</button><button data-v="reports">리포트</button><button data-v="skills">스킬</button><button data-v="plans">플랜·코스</button><button data-v="opinions">의견 보내기</button><button data-v="actions">작업 기록</button>
     </nav>
     <div id="msg" class="toast" hidden></div>
     <main id="view" class="aview"><p class="sub">불러오는 중…</p></main>
   </div>
   <dialog id="dlg"><form method="dialog" class="settings" id="dlgForm"></form></dialog>
-  <script src="config.js?v=0.1.1"></script><script src="telemetry.js?v=0.1.1"></script>
-  <script src="admin.js?v=0.1.1" type="module"></script>
+  <script src="config.js?v=0.1.3"></script><script src="telemetry.js?v=0.1.3"></script>
+  <script src="admin.js?v=0.1.3" type="module"></script>
 </body>
 </html>

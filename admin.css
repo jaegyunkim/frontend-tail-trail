@@ -311,3 +311,8 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 
 /* v0.4.19 한도 창: 입력값을 풀어 쓴 안내 */
 .settings .hint.limits-hint { color: var(--ink); font-size: 13px; font-weight: 600; background: var(--panel2); border-radius: 10px; padding: 8px 10px; line-height: 1.5; }
+
+/* 스킬 화면(어디물어 관리자와 같은 구성) */
+.card.sk summary,.card>summary{cursor:pointer;list-style:none}.card.sk summary::-webkit-details-marker{display:none}
+.sk-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.card.sk h4{margin:14px 0 4px;font-size:13.5px;color:var(--acc,#2F6B4F)}
+.sk-ul{margin:4px 0 6px;padding-left:18px;font-size:13px;line-height:1.6}.card.sk code,.tool code{font-size:11.5px;background:#EAF1EA;padding:1px 5px;border-radius:5px}
