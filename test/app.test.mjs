@@ -35,3 +35,11 @@ test('화면 문구는 해요체(합니다·십시오체가 남지 않음)', () 
 test('머리줄 로고·이름을 누르면 홈(오늘 탭)으로', () => { assert.match(read('index.html'), /<a class="brand" id="brandHome" href="\.\/"/); assert.match(read('app.js'), /\$\('#brandHome'\)\.onclick = e => \{ e\.preventDefault\(\); go\('plan'\); \}/); });
 test('비밀번호 칸: 지우기와 보기 버튼 공존, 로그인 때 다시 가림', () => { const h = read('index.html'), a = read('app.js'); assert.match(h, /class="eye-btn" id="pwToggle" aria-label="비밀번호 보기" aria-pressed="false"/); assert.match(a, /setPwVisible\(false\); \/\/ 보낼 때는 다시 가린다/); });
 test('출발지 고르기: 선택 배너 · 현재 위치 · 자주 걷는 곳 타일 · 글자 버튼', () => { const a = read('app.js'); for (const c of ['origin-gps', 'origin-sub', 'origin-places', 'origin-tile', 'origin-actions', 'origin-link']) assert.match(a, new RegExp(`class="${c}"`)); });
+test('비밀번호 변경 창: 세 칸 모두 보기(눈)·지우기(ⓧ) 버튼, 열 때·보낼 때 다시 가림', () => {
+  const h = read('index.html'), a = read('app.js');
+  for (const id of ['pwCur', 'pwNew', 'pwNew2']) {
+    assert.match(h, new RegExp(`<span class="clearable has-eye"><input id="${id}"[^>]*data-clearable>(<button[^>]*class="clear-btn"[\\s\\S]*?</button>)<button type="button" class="eye-btn" data-eye="${id}" aria-label="비밀번호 보기" aria-pressed="false"`), id);
+  }
+  assert.match(a, /const hidePwAll = /); assert.match(a, /e\.preventDefault\(\); hidePwAll\(\);/); assert.match(a, /\$\('#pwDialog'\)\.addEventListener\('close'/);
+  assert.match(a, /\$\('#pwNew2'\)\.value = ''; hidePwAll\(\); syncClearButtons\(\);/);
+});
