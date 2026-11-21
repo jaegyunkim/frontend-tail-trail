@@ -1,6 +1,6 @@
-import { ROLE_LABEL, DAY_NOTE, policyText, logoutUsage, nextLoginText, timesKo } from './role-policy.js?v=0.1.0';
+import { ROLE_LABEL, DAY_NOTE, policyText, logoutUsage, nextLoginText, timesKo } from './role-policy.js?v=0.1.1';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
-import { state, api, health, login, logout, startTimer, setOnAuthLost, setOnMustChange, saveAuth, syncAccount, remaining, sessionMinutes, loginQuota } from './auth.js?v=0.1.0';
+import { state, api, health, login, logout, startTimer, setOnAuthLost, setOnMustChange, saveAuth, syncAccount, remaining, sessionMinutes, loginQuota } from './auth.js?v=0.1.1';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -546,14 +546,20 @@ function showSessionEnd(min, lq) {
   showNotice(more ? '이번 이용 시간이 끝났어요' : '오늘 이용 시간이 끝났어요', `이 계정은 로그인 1회에 ${min}분 이용할 수 있어요.\n${nextLoginText(lq)}\n이용해 주셔서 감사합니다.${more ? '' : ' 다음에 다시 찾아 주세요.'}`);
 }
 function openPw(forced = true) {
-  $('#pwMsg').textContent = ''; $('#pwCur').value = ''; $('#pwNew').value = ''; $('#pwNew2').value = '';
+  $('#pwMsg').textContent = ''; $('#pwCur').value = ''; $('#pwNew').value = ''; $('#pwNew2').value = ''; hidePwAll(); syncClearButtons();
   $('#pwReason').textContent = forced ? '처음 로그인했거나 관리자가 초기화한 계정이에요. 새 비밀번호를 정해 주세요.' : '지금 비밀번호와 새 비밀번호를 입력해 주세요.';
   $('#pwCancel').hidden = forced; $('#pwDialog').showModal();
 }
+// 비밀번호 변경 창: 칸마다 보기(눈)·지우기(ⓧ). 창을 열 때와 보낼 때는 다시 가린다
+const pwEyes = () => document.querySelectorAll('.eye-btn[data-eye]');
+function setEye(btn, on) { const inp = document.getElementById(btn.dataset.eye); inp.type = on ? 'text' : 'password'; btn.setAttribute('aria-pressed', String(on)); btn.setAttribute('aria-label', on ? '비밀번호 숨기기' : '비밀번호 보기'); }
+pwEyes().forEach(b => { b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => { setEye(b, b.getAttribute('aria-pressed') !== 'true'); document.getElementById(b.dataset.eye).focus(); }); });
+const hidePwAll = () => pwEyes().forEach(b => setEye(b, false));
 $('#pwCancel').onclick = () => $('#pwDialog').close();
+$('#pwDialog').addEventListener('close', () => { hidePwAll(); for (const id of ['pwCur', 'pwNew', 'pwNew2']) { $('#' + id).value = ''; } syncClearButtons(); });
 $('#pwDialog').addEventListener('cancel', e => { if ($('#pwCancel').hidden) e.preventDefault(); }); // 첫 로그인 변경은 닫지 못하게
 $('#pwForm').onsubmit = async e => {
-  e.preventDefault();
+  e.preventDefault(); hidePwAll(); // 보낼 때는 다시 가린다(브라우저 비밀번호 저장도 정상 동작)
   if ($('#pwNew').value !== $('#pwNew2').value) { $('#pwMsg').textContent = '새 비밀번호 두 칸이 서로 달라요'; return; }
   try {
     const r = await api('/v1/auth/password', { method: 'POST', body: JSON.stringify({ current: $('#pwCur').value, next: $('#pwNew').value }) });

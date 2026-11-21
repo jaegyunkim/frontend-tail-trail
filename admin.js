@@ -1,8 +1,8 @@
-import { ROLE_LABEL, policyText, limitsText, DAY_NOTE } from './role-policy.js?v=0.1.0';
-import { approvalMailto } from './approval-email.js?v=0.1.0';
-import { visitsHtml } from './admin-visits.js?v=0.1.0';
+import { ROLE_LABEL, policyText, limitsText, DAY_NOTE } from './role-policy.js?v=0.1.1';
+import { approvalMailto } from './approval-email.js?v=0.1.1';
+import { visitsHtml } from './admin-visits.js?v=0.1.1';
 // 꼬리길 관리자 화면(backend-go-fishing/frontend-go-fishing 운영관리와 동일 구성 + 플랜·코스 탭): 계정·세션·사용량·대화 로그·로그인/작업 기록. 관리자 계정으로 로그인한 탭에서만 동작.
-import { state, api, health, startTimer, syncAccount, setOnAuthLost, logout } from './auth.js?v=0.1.0';
+import { state, api, health, startTimer, syncAccount, setOnAuthLost, logout } from './auth.js?v=0.1.1';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const dt = v => v ? new Date(v).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
