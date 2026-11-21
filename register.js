@@ -1,5 +1,6 @@
-import { policyText, DAY_NOTE } from './role-policy.js?v=0.1.3';
-import {api} from './auth.js?v=0.1.3';
+import { errText } from './errors.js?v=0.1.6';
+import { policyText, DAY_NOTE } from './role-policy.js?v=0.1.6';
+import {api} from './auth.js?v=0.1.6';
 // 이용 안내: 서버 기본 한도(/healthz 역할 기본값)로 채운다. 실패하면 화면에 둔 기본값 그대로
 const showPolicy=L=>{document.querySelector('#signupPolicy').textContent=policyText('user',L)+'(기본값, 계정마다 다를 수 있어요). '+DAY_NOTE;};
 showPolicy();
@@ -61,7 +62,7 @@ form.addEventListener('submit',async e=>{
  }catch(e){
   const known={REGISTRATION_PENDING:'이미 신청하셨어요',ALREADY_REGISTERED:'이미 가입된 이메일이에요',REGISTRATION_REVIEWED:'신청 상태를 확인해 주세요',REGISTRATION_RATE:'잠시 후 다시 신청해 주세요'};
   const title=known[e.code]||'신청이 접수되지 않았어요';
-  const text=known[e.code]?e.message:e.message+'\n입력하신 내용은 그대로 두었으니 잠시 후 다시 시도해 주세요.';
+  const text=known[e.code]?errText(e):errText(e)+'\n입력하신 내용은 그대로 두었으니 잠시 후 다시 시도해 주세요.';
   feedback(text,true);
   // 어떤 결과든 안내창으로 알려 준다(작은 글씨만으로는 놓치기 쉬움)
   showMessage(title,text);
@@ -69,3 +70,6 @@ form.addEventListener('submit',async e=>{
   submitting=false;button.disabled=dupBlocked;button.textContent='가입 신청하기';form.setAttribute('aria-busy','false');
  }
 });
+
+// 입력칸 오른쪽 ⓧ: 값이 있을 때만 보이고, 누르면 지운 뒤 그 칸에 다시 포커스(로그인 화면과 같은 방식)
+document.querySelectorAll('input[data-clearable]').forEach(inp=>{const btn=inp.parentElement.querySelector('.clear-btn');if(!btn)return;const sync=()=>{btn.hidden=!inp.value;};['input','change','focus'].forEach(ev=>inp.addEventListener(ev,sync));sync();setTimeout(sync,300);btn.addEventListener('mousedown',e=>e.preventDefault());btn.onclick=e=>{e.preventDefault();inp.value='';inp.dispatchEvent(new Event('input',{bubbles:true}));inp.focus();};});
