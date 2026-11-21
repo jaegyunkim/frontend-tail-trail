@@ -21,7 +21,12 @@ test('오늘 화면: 우리 아이 → 출발지 → 날짜 → 판단하기, �
 test('결과 화면: 판단 카드·시간대 막대·노면 추정 표시·응급·병원·미용·애견샵·전화 링크', () => {
   const a = read('app.js');
   for (const k of ['dog-hero', 'hour-bars', '노면 최고(추정)', 'sec emergency', '🏥 동물병원', '✂️ 애견 미용', '🛍️ 애견샵·용품', 'href="tel:']) assert.ok(a.includes(k), k);
-  assert.match(a, /영업 여부와 반려견 출입은 확인하지 못한 정보예요/);
+  
+});
+test('인허가 확인 표시·미확인 표시·반려동물 동반 조건·약국/펫호텔 종류', () => {
+  const a = read('app.js');
+  for (const k of ['인허가 확인', '인허가 정보 미확인', 'class="pet-cond"', "id: 'pharmacy'", "id: 'boarding'", 'x.licensed === true', 'x.licensed === false']) assert.ok(a.includes(k), k);
+  assert.match(a, /영업시간·휴무와 반려견 출입은 확인하지 못한 정보라/);
 });
 test('노면 온도는 추정값이라고 항상 밝힌다', () => assert.match(read('app.js'), /기온·하늘 상태로 계산, 실측 아님/));
 test('꼬리일기: 장소·시간·기분·배변·한 줄, 사진·정확한 위치는 받지 않는다', () => { const h = read('index.html'); for (const id of ['diaryPlace', 'diaryDog', 'diaryDate', 'diaryMinutes', 'diaryPoop', 'diaryMood', 'diaryNote']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /type="file"/); assert.match(h, /사진과 정확한 위치는 저장하지 않아요/); });
