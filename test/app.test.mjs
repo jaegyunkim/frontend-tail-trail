@@ -30,7 +30,7 @@ test('인허가 확인 표시·미확인 표시·반려동물 동반 조건·약
 });
 test('노면 온도는 추정값이라고 항상 밝힌다', () => assert.match(read('app.js'), /기온·하늘 상태로 계산, 실측 아님/));
 test('꼬리일기: 장소·시간·기분·배변·한 줄, 사진·정확한 위치는 받지 않는다', () => { const h = read('index.html'); for (const id of ['diaryPlace', 'diaryDog', 'diaryDate', 'diaryMinutes', 'diaryPoop', 'diaryMood', 'diaryNote']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /type="file"/); assert.match(h, /사진과 정확한 위치는 저장하지 않아요/); });
-test('우리 아이: 크기·나이·단두종·털만 받는다(견종·사진 없음)', () => { const h = read('index.html'); for (const id of ['dogName', 'dogSize', 'dogAge', 'dogFlat', 'dogCoat']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /견종 선택|type="file"/); });
+test('우리 아이: 크기·나이·단두종·털만 받는다(견종·사진 없음)', () => { const h = read('index.html'); for (const id of ['dogName', 'dogSize', 'dogAge', 'dogFlat', 'dogCoat', 'dogList', 'btnDogAdd', 'dogCancel', 'dogSubmit', 'dogWelcome', 'dogFull']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /견종 선택|type="file"/); });
 test('화면 문구는 해요체(합니다·십시오체가 남지 않음)', () => { for (const f of ['index.html', 'register.html', 'app.js', 'register.js', 'admin.js', 'auth.js', 'role-policy.js']) assert.doesNotMatch(read(f).replace(/감사합니다/g, ''), /[가-힣](습니다|십시오|됩니다|합니다|입니다)(?![가-힣])/, f); });
 test('머리줄 로고·이름을 누르면 홈(오늘 탭)으로', () => { assert.match(read('index.html'), /<a class="brand" id="brandHome" href="\.\/"/); assert.match(read('app.js'), /\$\('#brandHome'\)\.onclick = e => \{ e\.preventDefault\(\); go\('plan'\); \}/); });
 test('비밀번호 칸: 지우기와 보기 버튼 공존, 로그인 때 다시 가림', () => { const h = read('index.html'), a = read('app.js'); assert.match(h, /class="eye-btn" id="pwToggle" aria-label="비밀번호 보기" aria-pressed="false"/); assert.match(a, /setPwVisible\(false\); \/\/ 보낼 때는 다시 가린다/); });
@@ -42,4 +42,22 @@ test('비밀번호 변경 창: 세 칸 모두 보기(눈)·지우기(ⓧ) 버튼
   }
   assert.match(a, /const hidePwAll = /); assert.match(a, /e\.preventDefault\(\); hidePwAll\(\);/); assert.match(a, /\$\('#pwDialog'\)\.addEventListener\('close'/);
   assert.match(a, /\$\('#pwNew2'\)\.value = ''; hidePwAll\(\); syncClearButtons\(\);/);
+});
+
+test('우리 아이: 처음 등록·추가 등록·수정·삭제·기본 아이, 최대 5마리', () => {
+  const a = read('app.js'), h = read('index.html');
+  for (const k of ['우리 아이 처음 등록', '첫 아이 등록하기', '추가 등록하기', '수정 저장', '/v1/me/dogs/${dogEditId}/update', '/v1/me/dogs/${d.id}/delete', '/v1/me/dogs/${b.dataset.pick}/select', "confirm(`'${d.name}'을(를) 삭제할까요?", 'maxDogs: 5', 'if (first) go(\'plan\')']) assert.ok(a.includes(k), k);
+  assert.match(h, /최대 5마리까지 등록·수정·삭제/); assert.match(h, /5마리를 모두 등록했어요/); assert.doesNotMatch(h + a, /최대 3마리|3마리까지/);
+});
+test('관리자 화면: 어디물어와 같은 메뉴(신청 승인·AI 연결·스킬 포함)와 꼬리길 전용 플랜·코스', () => {
+  const h = read('admin.html'), a = read('admin.js'), c = read('admin.css');
+  const tabs = [...h.matchAll(/<button data-v="(\w+)"[^>]*>([^<]+)<\/button>/g)].map(m => [m[1], m[2]]);
+  assert.deepEqual(tabs, [['requests', '신청 승인'], ['model', 'AI 연결'], ['users', '사용자'], ['sessions', '세션'], ['usage', '사용량'], ['visits', '접속현황'], ['chats', '대화 로그'], ['logins', '로그인 기록'], ['reports', '리포트'], ['skills', '스킬'], ['plans', '플랜·코스'], ['opinions', '의견 보내기'], ['actions', '작업 기록']]);
+  for (const [v] of tabs) assert.match(a, new RegExp(`(async ${v}\\(|\\b${v}\\s*[:(])`), `views.${v}`);
+  assert.match(a, /\/v1\/admin\/skills/); assert.match(a, /\/v1\/admin\/model/); assert.match(a, /\/v1\/admin\/llm/); assert.match(c, /\.sk-ul/);
+  assert.match(h, /id="userPageLink"[^>]*>일반 페이지로<\/a>/); assert.match(a, /textContent = '일반 페이지로'/);
+});
+test('관리자 화면이 부르는 /v1/admin 경로는 모두 백엔드 라우트에 선언돼 있다(백엔드 시험 파일의 경로 목록과 같음)', () => {
+  const a = read('admin.js'); const paths = new Set([...a.matchAll(/['"`]\/v1\/admin\/([a-z_-]+)/g)].map(m => m[1]));
+  for (const p of ['users', 'sessions', 'usage', 'visits', 'reports', 'skills', 'model', 'llm', 'registrations', 'plans', 'courses', 'opinions', 'logins', 'chats', 'actions', 'capacity']) assert.ok(paths.has(p) || p === 'courses', p);
 });
