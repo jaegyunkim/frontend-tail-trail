@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="몽글">
+  <ellipse cx="44" cy="102" rx="19" ry="40" fill="#DDB27C" transform="rotate(10 44 102)"/><ellipse cx="156" cy="102" rx="19" ry="40" fill="#DDB27C" transform="rotate(-10 156 102)"/>
+  <ellipse cx="100" cy="188" rx="62" ry="38" fill="#F1D5A8"/>
+  <ellipse cx="100" cy="92" rx="56" ry="52" fill="#F1D5A8"/>
+  <ellipse cx="100" cy="112" rx="30" ry="22" fill="#FFF7EA"/>
+  <path d="M60 146 Q100 168 140 146 L124 182 L100 196 L76 182 Z" fill="#2F6B4F"/><circle cx="90" cy="164" r="3" fill="#fff" opacity=".8"/><circle cx="104" cy="172" r="3" fill="#fff" opacity=".8"/><circle cx="116" cy="160" r="3" fill="#fff" opacity=".8"/>
+  <circle cx="64" cy="106" r="7" fill="#F3A9A0" opacity=".55"/><circle cx="136" cy="106" r="7" fill="#F3A9A0" opacity=".55"/><circle cx="76" cy="86" r="7.4" fill="#2B2630"/><circle cx="73.6" cy="83.4" r="2.6" fill="#fff"/><circle cx="124" cy="86" r="7.4" fill="#2B2630"/><circle cx="121.6" cy="83.4" r="2.6" fill="#fff"/><path d="M91 104 Q100 98 109 104 Q106 112 100 113 Q94 112 91 104 Z" fill="#2B2630"/><ellipse cx="97" cy="105" rx="2.4" ry="1.5" fill="#fff" opacity=".7"/><path d="M90 118 Q95 125 100 117 Q105 125 110 118" stroke="#2B2630" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M95 122 Q100 135 105 122 Z" fill="#F3A9A0"/>
+</svg>
