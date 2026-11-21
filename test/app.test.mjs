@@ -7,9 +7,9 @@ test('기본 API 는 HTTPS /tail-trail 경로, 로컬 기본 포트 8889', () =>
 test('북 워킹의 책·예스24·오디오 문구가 남지 않는다', () => { for (const f of ['index.html', 'app.js', 'role-policy.js', 'approval-email.js']) assert.doesNotMatch(read(f), /예스24|오디오 워킹|책장|북 워킹|BOOKWALKING/, f); });
 test('index.html 의 스크립트·스타일 버전이 같다', () => { const v = [...read('index.html').matchAll(/\?v=([\d.]+)/g)].map(m => m[1]); assert.ok(v.length >= 3); assert.equal(new Set(v).size, 1); });
 test('로그인 아이디·비밀번호 칸에 ⓧ 지우기 버튼', () => { const h = read('index.html'); for (const id of ['loginId', 'loginPw']) assert.match(h, new RegExp(`<span class="clearable[^"]*"><input id="${id}" data-clearable[^>]*><button type="button" class="clear-btn"[^>]*hidden><svg[^>]*><circle`)); assert.match(read('app.js'), /input\[data-clearable\]/); });
-test('하단 메뉴: 오늘·주변·꼬리일기·우리 아이·의견', () => { const h = read('index.html'); for (const t of ['plan', 'near', 'diary', 'dogs', 'opinion']) { assert.match(h, new RegExp(`<button data-tab="${t}"`)); assert.match(h, new RegExp(`<section id="tab-${t}"`)); } });
+test('하단 메뉴: 오늘·주변·보호소·꼬리일기·우리 아이·의견', () => { const h = read('index.html'); assert.deepEqual([...h.matchAll(/<button data-tab="([^"]+)"/g)].map(m=>m[1]), ['plan','near','shelter','diary','dogs','opinion']); for (const t of ['plan', 'near', 'shelter', 'diary', 'dogs', 'opinion']) { assert.match(h, new RegExp(`<button data-tab="${t}"`)); assert.match(h, new RegExp(`<section id="tab-${t}"`)); } });
 test('app.js 가 쓰는 #id 는 모두 index.html 에 있다', () => {
-  const js = read('app.js'), html = read('index.html'), dynamic = new Set(['stepName', 'planQuotaTag', 'btnToDiary', 'placeSaveCur', 'placeManage', 'btnPlay']);
+  const js = read('app.js'), html = read('index.html'), dynamic = new Set(['stepName', 'planQuotaTag', 'btnToDiary', 'placeSaveCur', 'placeManage', 'btnPlay', 'btnDogFirst2']);
   const ids = new Set([...js.matchAll(/\$\('#([A-Za-z0-9_-]+)'\)/g)].map(m => m[1])), have = new Set([...html.matchAll(/id="([^"]+)"/g)].map(m => m[1]));
   assert.deepEqual([...ids].filter(i => !have.has(i) && !dynamic.has(i)), []);
 });
@@ -30,7 +30,7 @@ test('인허가 확인 표시·미확인 표시·반려동물 동반 조건·약
 });
 test('노면 온도는 추정값이라고 항상 밝힌다', () => assert.match(read('app.js'), /기온·하늘 상태로 계산, 실측 아님/));
 test('꼬리일기: 장소·시간·기분·배변·한 줄, 사진·정확한 위치는 받지 않는다', () => { const h = read('index.html'); for (const id of ['diaryPlace', 'diaryDog', 'diaryDate', 'diaryMinutes', 'diaryPoop', 'diaryMood', 'diaryNote']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /type="file"/); assert.match(h, /사진과 정확한 위치는 저장하지 않아요/); });
-test('우리 아이: 크기·나이·단두종·털만 받는다(견종·사진 없음)', () => { const h = read('index.html'); for (const id of ['dogName', 'dogSize', 'dogAge', 'dogFlat', 'dogCoat', 'dogList', 'btnDogAdd', 'dogCancel', 'dogSubmit', 'dogWelcome', 'dogFull']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /견종 선택|type="file"/); });
+test('우리 아이: 크기·나이·단두종·털만 받는다(견종·사진 없음)', () => { const h = read('index.html'); for (const id of ['dogName', 'dogSize', 'dogAge', 'dogFlat', 'dogCoat', 'dogList', 'btnDogAdd', 'btnDogFirst', 'dogCancel', 'dogSubmit', 'dogWelcome', 'dogFull', 'dogDialog', 'dogDelDialog', 'dogLive']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /견종 선택|type="file"/); });
 test('화면 문구는 해요체(합니다·십시오체가 남지 않음)', () => { for (const f of ['index.html', 'register.html', 'app.js', 'register.js', 'admin.js', 'auth.js', 'role-policy.js']) assert.doesNotMatch(read(f).replace(/감사합니다/g, ''), /[가-힣](습니다|십시오|됩니다|합니다|입니다)(?![가-힣])/, f); });
 test('머리줄 로고·이름을 누르면 홈(오늘 탭)으로', () => { assert.match(read('index.html'), /<a class="brand" id="brandHome" href="\.\/"/); assert.match(read('app.js'), /\$\('#brandHome'\)\.onclick = e => \{ e\.preventDefault\(\); go\('plan'\); \}/); });
 test('비밀번호 칸: 지우기와 보기 버튼 공존, 로그인 때 다시 가림', () => { const h = read('index.html'), a = read('app.js'); assert.match(h, /class="eye-btn" id="pwToggle" aria-label="비밀번호 보기" aria-pressed="false"/); assert.match(a, /setPwVisible\(false\); \/\/ 보낼 때는 다시 가린다/); });
@@ -44,10 +44,18 @@ test('비밀번호 변경 창: 세 칸 모두 보기(눈)·지우기(ⓧ) 버튼
   assert.match(a, /\$\('#pwNew2'\)\.value = ''; hidePwAll\(\); syncClearButtons\(\);/);
 });
 
-test('우리 아이: 처음 등록·추가 등록·수정·삭제·기본 아이, 최대 5마리', () => {
-  const a = read('app.js'), h = read('index.html');
-  for (const k of ['우리 아이 처음 등록', '첫 아이 등록하기', '추가 등록하기', '수정 저장', '/v1/me/dogs/${dogEditId}/update', '/v1/me/dogs/${d.id}/delete', '/v1/me/dogs/${b.dataset.pick}/select', "confirm(`'${d.name}'을(를) 삭제할까요?", 'maxDogs: 5', 'if (first) go(\'plan\')']) assert.ok(a.includes(k), k);
+test('우리 아이: 처음 등록·추가 등록·수정·삭제·기본 아이, 최대 5마리, 카드·시트 UI', () => {
+  const a = read('app.js'), h = read('index.html'), c = read('style.css');
+  for (const k of ['우리 아이 처음 등록', '첫 아이 등록하기', '추가 등록하기', '수정 저장', '/v1/me/dogs/${dogEditId}/update', '/v1/me/dogs/${d.id}/delete', '/v1/me/dogs/${b.dataset.pick}/select', 'askDeleteDog', 'maxDogs: 5', "if (first) go('plan')", 'dog-pick-card', 'dog-card', 'dog-traits', '/v1/dog-care?size=', 'class="dog-ava']) assert.ok(a.includes(k), k);
   assert.match(h, /최대 5마리까지 등록·수정·삭제/); assert.match(h, /5마리를 모두 등록했어요/); assert.doesNotMatch(h + a, /최대 3마리|3마리까지/);
+  assert.match(c, /dialog\.sheet \{/); assert.match(c, /\.dog-pick-card\[aria-checked="true"\]/); assert.match(c, /\.check-card:has\(input:checked\)/);
+});
+test('삭제는 브라우저 기본 확인창이 아니라 같은 디자인의 창을 쓰고, 꼬리일기는 남는다고 안내한다', () => { const a = read('app.js'); assert.doesNotMatch(a.slice(a.indexOf('function askDeleteDog'), a.indexOf('function askDeleteDog') + 900), /confirm\(/); assert.match(a, /꼬리일기 기록은 남아요/); assert.match(a, /삭제하면 되돌릴 수 없어요/); });
+test('출발지 고르기 상태·함수가 정의돼 있다(없으면 오늘 화면이 통째로 멈춘다)', () => {
+  const a = read('app.js');
+  for (const k of ['let here = ', 'let locating', 'const originValue = ', 'function setOrigin(', 'function locateHere(', 'function renderPlaces(', 'function drawForm(', 'function drawDogChips(', 'function loadDogs(', 'function renderDogs(', 'function openDogForm(']) assert.ok(a.includes(k), k);
+  // 같은 이름을 두 번 선언하지 않는다
+  for (const n of ['here', 'locating', 'originValue', 'dogDraft', 'dogFull', 'dogSub', 'sizeLabel', 'avatar']) assert.equal((a.match(new RegExp(`^(?:let|const|function) ${n}\\b`, 'gm')) || []).length, 1, n);
 });
 test('관리자 화면: 어디물어와 같은 메뉴(신청 승인·AI 연결·스킬 포함)와 꼬리길 전용 플랜·코스', () => {
   const h = read('admin.html'), a = read('admin.js'), c = read('admin.css');
@@ -60,4 +68,18 @@ test('관리자 화면: 어디물어와 같은 메뉴(신청 승인·AI 연결·
 test('관리자 화면이 부르는 /v1/admin 경로는 모두 백엔드 라우트에 선언돼 있다(백엔드 시험 파일의 경로 목록과 같음)', () => {
   const a = read('admin.js'); const paths = new Set([...a.matchAll(/['"`]\/v1\/admin\/([a-z_-]+)/g)].map(m => m[1]));
   for (const p of ['users', 'sessions', 'usage', 'visits', 'reports', 'skills', 'model', 'llm', 'registrations', 'plans', 'courses', 'opinions', 'logins', 'chats', 'actions', 'capacity']) assert.ok(paths.has(p) || p === 'courses', p);
+});
+test('글을 쓰는 모든 입력칸에 ⓧ(동그라미 안 x) 전체 지우기 버튼', () => {
+  const h = read('index.html'), r = read('register.html');
+  for (const id of ['loginId', 'loginPw', 'pwCur', 'pwNew', 'pwNew2', 'placeInput', 'dogName', 'diaryPlace', 'diaryMinutes', 'diaryNote', 'opinionText']) {
+    assert.match(h, new RegExp(`<span class="clearable[^"]*"><(?:input|textarea) id="${id}"[^>]*data-clearable[^>]*>(?:[^<]*</textarea>)?<button type="button" class="clear-btn"[^>]*hidden><svg[^>]*><circle cx="10" cy="10" r="9"/><path d="M7 7l6 6M13 7l-6 6"/>`), id);
+  }
+  assert.equal((r.match(/class="clear-btn"/g) || []).length, 2); assert.match(read('register.js'), /input\[data-clearable\]/);
+  assert.match(read('app.js'), /diaryForm'\)\.reset\(\); syncClearButtons\(\)/);
+  assert.match(read('style.css'), /\.clearable input\[type="number"\]::-webkit-inner-spin-button/);
+});
+test('강아지 캐릭터: 종류 5개 × 모양 5개 SVG 25장이 있고, 고르기 화면이 크기·체크에 맞는 종류만 보여 준다', () => {
+  for (const k of ['small', 'medium', 'large', 'flat', 'coat']) for (let n = 1; n <= 5; n++) { const f = new URL(`../assets/dogs/${k}-${n}.svg`, import.meta.url); assert.ok(fs.existsSync(f), `${k}-${n}.svg`); assert.match(fs.readFileSync(f, 'utf8'), /^<svg[^>]+viewBox="0 0 200 200"/); }
+  const js = read('app.js'); assert.match(js, /id="dogAvatar"|#dogAvatar/); assert.match(read('index.html'), /id="dogAvatar"/);
+  assert.match(js, /get avatar\(\) \{ return `\$\{kindOf\(this\)\}-\$\{dogDraft\.variant\}`; \}/);
 });
