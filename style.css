@@ -979,3 +979,24 @@ dialog::backdrop { background: var(--backdrop); }
 .poop-chip:has(input:checked) { border-color: var(--brand); background: var(--accent-soft); color: var(--accent-text); font-weight: 800; }
 .poop-chip:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
 @media (max-width: 400px) { .mood-row > #diaryMood { display: contents; } .poop-chip { margin-left: 0; } }
+/* 머리줄 한 줄 유지: 로고·남은 시간은 줄바꿈 금지. 400px 이하에서는 '관리자'·'로그아웃'을 아이콘 버튼(44×44)으로,
+   340px 이하에서는 로고 글자를 숨기고 그림만(홈 링크 이름은 aria-label 로 유지) */
+.top { flex-wrap: nowrap; gap: 8px; }
+.brand { flex: 0 1 auto; min-width: 0; }
+.brand b, .brand small, .timer { white-space: nowrap; }
+.brand > div { min-width: 0; }
+.top-right { flex: none; flex-wrap: nowrap; }
+.top-right .icon-btn { min-width: 44px; min-height: 44px; }
+.timer { flex: none; font-variant-numeric: tabular-nums; padding: 4px 8px; }
+.hdr-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; white-space: nowrap; }
+.hdr-btn .hdr-ico { display: none; width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 400px) {
+  .top { padding-left: 12px; padding-right: 12px; gap: 6px; }
+  .top-right { gap: 4px; }
+  .top-right .icon-btn, .top-right .hdr-btn { min-width: 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 14px; }
+  .hdr-btn .hdr-ico { display: block; }
+  .hdr-btn .hdr-txt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .timer { font-size: 12.5px; padding: 3px 7px; }
+  .brand { gap: 7px; } .brand b { font-size: 16px; }
+}
+@media (max-width: 340px) { .brand > div { display: none; } }

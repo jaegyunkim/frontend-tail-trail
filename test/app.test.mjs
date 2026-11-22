@@ -90,3 +90,10 @@ test('주변 탭 종류 6개는 한 줄(줄바꿈 없음), 넘치면 가로 스�
   assert.match(c, /\.chips\.near-row \.chip \{[^}]*flex: 1 0 auto;[^}]*min-height: 44px;/);
   assert.match(a, /showPickedChip\(\$\('#nearChips'\)\)/);
 });
+test('머리줄 한 줄: 로고·시간 줄바꿈 금지, 좁은 화면은 관리자·로그아웃 아이콘(이름은 aria-label), 44px', () => {
+  const h = read('index.html'), c = read('style.css');
+  assert.match(h, /<button id="btnLogout" class="ghost hdr-btn" type="button" aria-label="로그아웃"/);
+  assert.match(h, /<a id="btnAdmin" class="ghost admin-link hdr-btn" href="admin.html" aria-label="관리자"/);
+  assert.match(c, /\.brand b, \.brand small, \.timer \{ white-space: nowrap; \}/);
+  assert.match(c, /\.top-right \.icon-btn, \.top-right \.hdr-btn \{ min-width: 44px; width: 44px; height: 44px;/);
+});
