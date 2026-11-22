@@ -1154,3 +1154,41 @@ dialog::backdrop { background: var(--backdrop); }
 .ava-img.badge-senior::after, .ava-img.badge-puppy::after { position: absolute; right: 2px; bottom: 2px; padding: 1px 5px; border-radius: 999px; font-size: 10px; font-weight: 800; line-height: 1.4; color: #fff; }
 .ava-img.badge-senior::after { content: '어르신'; background: #64748B; }
 .ava-img.badge-puppy::after { content: '아기'; background: var(--coral); }
+/* 마감 점검(전 화면 훑기): 스타일·레이아웃 보정만. 글자 13px 이상·터치 44px(작은 것 40px)·대비 4.5:1·320px 줄바꿈 */
+:root { --mute: #5E6B7F; } /* 밝은 모드 보조 글자 대비 4.49 → 5.1 */
+.timer, .tc-eyebrow, .chip.two .chip-sub, .plan-form .opt, .field .opt, em, .count, .place-steps, .token-tag, .diary-list .when, #diaryStats .metric-label, .places .pl-badge, .check-card small, .ava-opt small, .dog-pick-card small, .origin-now small, .login-card .eyebrow, .brand small, #shelterRoot .shelter-badge, #shelterRoot .shelter-facts dt, #shelterRoot .shelter-card-body > small, .tc-title small, .tc-head .tag, .tc-wx span small, .tc-src, .tc-foot, .tag, .lg, #shelterRoot .shelter-thumb .shelter-placeholder, .tabbar button, .sec h3 small, .sources, .sources span { font-size: 13px; }
+@media (max-width: 380px) { .tabbar button { font-size: 13px; letter-spacing: -.3px; } }
+@media (max-width: 480px) { .timer { font-size: 13px; } }
+.ava-opt small { opacity: 1; color: var(--mute); } .ava-opt[aria-checked="true"] small { color: var(--ink2); }
+.dog-pick-card[aria-checked="true"] small, .wx-hour.now .t { color: var(--ink2); }
+.star { color: #8C867C; } .star.on { color: var(--sun); }
+:root[data-theme="dark"] .star:not(.on) { color: #64748B; } :root[data-theme="dark"] .lg.bad { color: #450A0A; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .star:not(.on) { color: #64748B; } :root:not([data-theme="light"]) .lg.bad { color: #450A0A; } }
+/* 터치 영역 */
+.brand { min-height: 44px; min-width: 44px; }
+.clear-btn { width: 40px; height: 40px; }
+.share-card summary { padding-block: 11px; }
+.places .pl-name a.ext { padding-block: 9px; }
+#shelterRoot .shelter-bar-btn, #shelterRoot .shelter-card-body .shelter-details summary { min-height: 44px; }
+#shelterRoot .shelter-details a[href^="tel:"], #shelterRoot .shelter-source > a { display: inline-flex; align-items: center; min-height: 44px; }
+.dog-card-main .dog-card-acts .ghost { min-height: 44px; }
+@media (max-width: 420px) { .dog-card-main .dog-card-acts .ghost { font-size: 13px; } }
+/* 줄바꿈·잘림 */
+.sec h3 { flex-wrap: wrap; row-gap: 2px; }
+#diaryStats .metric-label { line-height: 1.3; word-break: keep-all; white-space: normal; overflow-wrap: anywhere; }
+.diary-list li > button[data-del] { display: flex; align-items: center; justify-content: center; width: fit-content; margin-top: 8px; }
+#tab-near .actions { margin-bottom: 12px; }
+.chips.who-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.chips.who-grid .chip .chip-sub { white-space: normal; word-break: keep-all; line-height: 1.25; }
+/* 시간대 막대(16칸): 좁은 화면은 숫자를 2시간마다만 보여 글자를 13px로(막대와 색은 그대로, 칸 제목에 전체 값) */
+.hb-row .hb-t, .hb-row .hb > b { white-space: nowrap; font-size: 13px; }
+@media (max-width: 480px) {
+  .hb-row .hb:nth-child(even) .hb-t, .hb-row .hb:nth-child(even) > b { visibility: hidden; }
+}
+@media (max-width: 360px) {
+  .login-card h1.login-title { font-size: min(42px, calc((100vw - 86px) / 8)); }
+  .chips.date-grid .chip-sub { white-space: normal; line-height: 1.2; text-align: center; }
+  .diary-form .row.diary-trio { grid-template-columns: 1fr; }
+  .place-acts { flex-direction: column; }
+  .place-acts .ghost, .place-acts .primary { flex: none; width: 100%; min-height: 48px; }
+}
