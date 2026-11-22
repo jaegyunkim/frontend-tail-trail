@@ -736,3 +736,21 @@ label > .clearable { margin-top: 6px; }
 /* 보호소: 좁은 기기에서도 여섯 메뉴가 한 줄에 들어간다. */
 .tabbar {grid-template-columns:repeat(6,minmax(0,1fr))}.tabbar button{min-width:0;padding-inline:0;white-space:nowrap}.tabbar button.active span{padding-inline:9px}
 #shelterRoot{color:var(--ink);overflow-wrap:anywhere}#shelterRoot :where(input,select,button,summary){min-height:44px}#shelterRoot button{border:1px solid var(--hair);border-radius:9px;background:#fff;color:var(--accent-text);padding:7px 12px;font-weight:650}#shelterRoot button:disabled{opacity:.52}#shelterRoot summary{cursor:pointer;padding-block:9px;font-weight:700}#shelterRoot a{font-weight:650}.shelter-head p,.shelter-source,.shelter-status{color:var(--mute);font-size:.9rem}.shelter-region,.shelter-filters{padding:12px;border:1px solid var(--hair);border-radius:12px;margin-block:12px}.shelter-field{display:block;min-width:0;font-size:.88rem}.shelter-field select,.shelter-field input{display:block;margin-block:3px 7px;border-radius:8px}.shelter-list{display:grid;gap:12px;padding:0;list-style:none}.shelter-card,.shelter-guide{border:1px solid var(--hair);border-radius:12px;background:white;padding:12px}.shelter-photo{width:100%;max-height:225px;object-fit:contain;background:var(--soft);border-radius:8px}.shelter-placeholder{background:var(--soft);color:var(--mute);padding:16px;text-align:center}.shelter-badge{display:inline-block;border-radius:30px;background:var(--accent-soft);color:var(--accent-text);padding:3px 9px;font-size:.8rem}.shelter-pager{display:flex;justify-content:center;align-items:center;gap:10px;margin:16px 0}.shelter-facts{margin:8px 0}.shelter-facts dt{color:var(--mute);font-size:.82rem}.shelter-facts dd{margin:0 0 6px}.shelter-guide{margin:14px 0}.shelter-source{margin-top:18px}
+/* 우리 아이 카드: [둥근 사각 캐릭터] [이름·속성] [기본·수정·삭제 세로] */
+.dog-card-main{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px}
+.dog-ava.sq{border-radius:18px}
+.dog-ava.lg.sq{width:76px;height:76px}
+.dog-card-name{min-width:0}
+.dog-card-name h3{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dog-card-name p{line-height:1.4;overflow-wrap:anywhere}
+.dog-card-main .dog-card-acts{display:flex;flex-direction:column;flex-wrap:nowrap;gap:6px;width:112px}
+.dog-card-main .dog-card-acts .ghost{flex:none;width:100%;min-height:38px;padding:0 10px;font-size:13.5px;white-space:nowrap}
+.dog-card-acts .is-default-btn:disabled{opacity:1;cursor:default;background:var(--accent-soft,#EAF1EA);color:#2F6B4F;border-color:#CFE3D3;font-weight:800}
+.dog-card .dog-care{margin:12px 0 8px}
+@media (max-width:420px){.dog-card{padding:14px 12px}.dog-card-main{gap:10px}.dog-ava.lg.sq{width:60px;height:60px;border-radius:14px}.dog-card-main .dog-card-acts{width:96px}.dog-card-main .dog-card-acts .ghost{font-size:12.5px;padding:0 6px}.dog-card-name h3{font-size:17px}.dog-card-name p{font-size:13px}}
+/* 이름 중복 실시간 안내 */
+.name-check{display:block;margin:6px 2px 0;font-size:13px;font-weight:600;line-height:1.4}
+.name-check:empty{display:none}
+.name-check[data-kind="bad"]{color:var(--bad,#B23A3A)}
+.name-check[data-kind="ok"]{color:#2F6B4F}
+#dogName[aria-invalid="true"]{border-color:var(--bad,#B23A3A)}

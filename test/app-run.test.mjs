@@ -47,7 +47,7 @@ function makeContext(apiImpl) {
   return vm.createContext(ctx);
 }
 const FOOTER = `
-globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go,
+globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName,
   setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel };`;
 const load = apiImpl => { const ctx = makeContext(apiImpl); vm.runInContext(SRC.replace(/^import .*$/gm, '') + FOOTER, ctx, { filename: 'app.js' }); return ctx.__app; };
 
@@ -83,4 +83,23 @@ test('결과 화면 그리기(renderPlan)와 이용 한도 표시, 탭 이동', 
   assert.doesNotThrow(() => app.renderQuota());
   assert.doesNotThrow(() => app.logoutText());
   for (const tab of ['plan', 'near', 'shelter', 'diary', 'dogs', 'opinion']) assert.doesNotThrow(() => app.go(tab), tab);
+});
+
+test('아이 이름 중복: 공백·대소문자 정규화, 수정 중인 자기 자신 제외, 빈 이름은 검사 안 함', () => {
+  const app = load(async () => OPTIONS);
+  const list = [...DOGS, { ...DOGS[1], id: 3, name: 'Bori  Kim' }];
+  assert.equal(app.findDupDog('  앤비 ', list, null)?.id, 1);
+  assert.equal(app.findDupDog('앤비', list, 1), null);
+  assert.equal(app.findDupDog('bori kim', list, null)?.id, 3);
+  assert.equal(app.findDupDog('', list, null), null);
+  assert.equal(app.findDupDog('   ', list, null), null);
+  assert.equal(app.findDupDog('앤비2', list, null), null);
+  assert.equal(app.dogNameKey(' A  b<> '), 'a b');
+  app.setDogs(DOGS); assert.doesNotThrow(() => app.checkDogName());
+});
+test('로그아웃 확인창 문구는 짧게(규칙 설명 없음)', () => {
+  const app = load(async () => ({}));
+  const t = app.logoutText();
+  assert.ok(t.split('\n').length <= 2, t);
+  assert.doesNotMatch(t, /15분|초기화|60분/);
 });

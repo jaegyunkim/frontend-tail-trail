@@ -1,5 +1,5 @@
 import { mountShelter } from './shelter.js?v=0.1.6';
-import { ROLE_LABEL, DAY_NOTE, policyText, logoutUsage, nextLoginText, timesKo } from './role-policy.js?v=0.1.6';
+import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
 import { state, api, health, login, logout, startTimer, setOnAuthLost, setOnMustChange, saveAuth, syncAccount, remaining, sessionMinutes, loginQuota } from './auth.js?v=0.1.6';
@@ -76,10 +76,9 @@ function renderDogs() {
   $('#dogCount').textContent = dogs.length ? `${dogs.length}/${dogOptions.maxDogs}` : '';
   $('#dogWelcome').hidden = dogs.length > 0;
   $('#dogList').innerHTML = dogs.map(d => `<article class="dog-card${d.selected ? ' is-default' : ''}" aria-label="${esc(d.name)}">
-    <div class="dog-card-top">${avatar(d, 'lg')}<div class="dog-card-name"><h3>${esc(d.name)}${d.selected ? ' <span class="tag go">기본 아이</span>' : ''}</h3><p>${esc(dogSub(d))}</p></div></div>
-    <p class="dog-care">${esc(d.care?.summary ?? '')}</p>
-    <ul class="dog-traits">${(d.care?.traits ?? []).map(t => `<li><span aria-hidden="true">${t.icon}</span><span>${esc(t.note)}</span></li>`).join('')}</ul>
-    <div class="dog-card-acts"><button type="button" class="ghost" data-edit="${d.id}" aria-label="${esc(d.name)} 정보 수정">✏️ 수정</button>${d.selected ? '' : `<button type="button" class="ghost" data-pick="${d.id}" aria-label="${esc(d.name)}를 기본 아이로">⭐ 기본 아이로</button>`}<button type="button" class="ghost danger" data-del="${d.id}" aria-label="${esc(d.name)} 삭제">🗑 삭제</button></div></article>`).join('');
+    <div class="dog-card-main">${avatar(d, 'lg sq')}<div class="dog-card-name"><h3>${esc(d.name)}</h3><p>${esc(dogSub(d))}</p></div>
+    <div class="dog-card-acts">${d.selected ? `<button type="button" class="ghost is-default-btn" disabled aria-label="${esc(d.name)}는 기본 아이예요">⭐ 기본 아이</button>` : `<button type="button" class="ghost" data-pick="${d.id}" aria-label="${esc(d.name)}를 기본 아이로">☆ 기본 아이로</button>`}<button type="button" class="ghost" data-edit="${d.id}" aria-label="${esc(d.name)} 정보 수정">✏️ 수정</button><button type="button" class="ghost danger" data-del="${d.id}" aria-label="${esc(d.name)} 삭제">🗑 삭제</button></div></div>
+    ${d.care?.summary ? `<p class="dog-care">${esc(d.care.summary)}</p>` : ''}${d.care?.traits?.length ? `<ul class="dog-traits">${d.care.traits.map(t => `<li><span aria-hidden="true">${t.icon}</span><span>${esc(t.note)}</span></li>`).join('')}</ul>` : ''}</article>`).join('');
   $('#dogAddWrap').hidden = dogFull() || !dogs.length; $('#dogFull').hidden = !dogFull();
   $('#btnDogAdd').querySelector('.act-label').textContent = `아이 추가 등록 (${dogs.length}/${dogOptions.maxDogs})`;
   $('#dogList').querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openDogForm(dogs.find(d => d.id === Number(b.dataset.edit))));
@@ -126,19 +125,33 @@ function scheduleDogLive() { clearTimeout(liveTimer); liveTimer = setTimeout(asy
     box.innerHTML = `${avatar({ ...b, avatar: b.avatar, age: b.age }, 'lg')}<div><b>${esc(b.name || '우리 아이')}는 이렇게 판단해요</b><p>${esc(r.care.summary)}</p><p class="small-text">${esc(r.care.traits.map(t => t.icon).join(' '))} ${esc(r.care.traits[0].note)}</p></div>`; box.hidden = false;
   } catch { box.hidden = true; } }, 200); }
 $('#dogName').addEventListener('input', scheduleDogLive); ['#dogFlat', '#dogCoat'].forEach(s => $(s).addEventListener('change', () => { drawAvatarPicker(); scheduleDogLive(); }));
+/** 이름 중복 검사: 앞뒤·연속 공백, 대소문자, 서버가 지우는 < > 를 맞춰 비교한다. 빈 이름은 검사하지 않는다(선택 입력). */
+const dogNameKey = v => String(v ?? '').replace(/[<>]/g, '').normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+const findDupDog = (name, list = dogs, exceptId = dogEditId) => { const k = dogNameKey(name); return k ? list.find(d => d.id !== exceptId && dogNameKey(d.name) === k) ?? null : null; };
+const josaIGa = w => { const c = String(w).charCodeAt(String(w).length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 ? '이' : '가'; };
+function checkDogName() {
+  const box = $('#dogNameMsg'), name = $('#dogName').value, dup = findDupDog(name);
+  if (dup) { box.textContent = `이미 '${dup.name}'${josaIGa(dup.name)} 등록돼 있어요. 다른 이름을 써 주세요.`; box.dataset.kind = 'bad'; }
+  else if (dogNameKey(name)) { box.textContent = '✓ 쓸 수 있는 이름이에요'; box.dataset.kind = 'ok'; }
+  else { box.textContent = ''; box.dataset.kind = ''; }
+  $('#dogName').setAttribute('aria-invalid', dup ? 'true' : 'false');
+  return !dup;
+}
+$('#dogName').addEventListener('input', checkDogName);
 function openDogForm(dog = null) {
   dogEditId = dog?.id ?? null; const first = !dogs.length;
   dogDraft = dog ? { size: dog.size, age: dog.age, variant: Number(avatarId(dog).slice(-1)) } : { size: 'medium', age: 'adult', variant: 1 };
   $('#dogName').value = dog?.name ?? ''; $('#dogFlat').checked = Boolean(dog?.flatFace); $('#dogCoat').checked = Boolean(dog?.thickCoat); $('#dogMsg').textContent = '';
   $('#dogFormTitle').textContent = dog ? `${dog.name} 정보 수정` : first ? '우리 아이 처음 등록' : `아이 추가 등록 (${dogs.length + 1}/${dogOptions.maxDogs}번째)`;
   $('#dogSubmit').textContent = dog ? '수정 저장' : first ? '첫 아이 등록하기' : '추가 등록하기';
-  drawDogDraftChips(); syncClearButtons(); const dlg = $('#dogDialog'); if (!dlg.open) dlg.showModal(); setTimeout(() => $('#dogName').focus(), 80);
+  drawDogDraftChips(); syncClearButtons(); checkDogName(); const dlg = $('#dogDialog'); if (!dlg.open) dlg.showModal(); setTimeout(() => $('#dogName').focus(), 80);
 }
 function closeDogForm() { dogEditId = null; const dlg = $('#dogDialog'); if (dlg.open) dlg.close(); $('#dogMsg').textContent = ''; }
 $('#btnDogAdd').onclick = () => openDogForm(); $('#btnDogFirst').onclick = () => openDogForm(); $('#dogCancel').onclick = closeDogForm;
 $('#dogDialog').addEventListener('click', e => { if (e.target === $('#dogDialog')) closeDogForm(); }); // 바깥을 누르면 닫기
 $('#dogForm').onsubmit = async e => {
   e.preventDefault(); const m = $('#dogMsg'); m.textContent = '';
+  if (!checkDogName()) { $('#dogName').focus(); return; }
   const body = JSON.stringify(draftBody()), first = !dogs.length, editing = dogEditId != null, btn = $('#dogSubmit'); btn.disabled = true;
   try {
     if (editing) { const r = await api(`/v1/me/dogs/${dogEditId}/update`, { method: 'POST', body }); dogs = r.dogs; drawDogChips(); renderDogs(); closeDogForm(); toast(`'${r.dog.name}' 정보를 수정했어요`); }
@@ -546,15 +559,12 @@ function renderQuota() {
   $('#planForm').classList.toggle('token-empty', quotaLocked);
 }
 /** 로그아웃 확인창: 이용 조건(로그인 횟수·이용 시간·자동 로그아웃·하루 AI 사용량)을 계정 한도 값으로 짧게 */
+/** 로그아웃 확인창: 규칙 설명 없이 남은 횟수만 한 줄로(모르면 감사 인사만) */
 function logoutText() {
-  const L = usage?.limits ?? state.auth?.user?.limits, lq = loginQuota();
-  if (!L && !lq) return '이용해 주셔서 감사합니다.\n' + logoutUsage(null, null);
-  const lines = [`• 24시간에 ${timesKo(L?.dailySessions ?? lq.limit)}, 한 번에 ${sessionMinutes() ?? L?.sessionMinutes}분 동안 이용할 수 있어요.`];
-  if (lq) lines.push('• ' + nextLoginText(lq));
-  lines.push('• 15분 동안 아무 조작이 없으면 자동으로 로그아웃돼요.');
-  if (L?.dailyMessages != null) lines.push(`• 산책 판단은 하루 ${fmt(L.dailyMessages)}번까지 만들 수 있어요${hasQuota() ? `(지금 ${fmt(quotaLeft())}번 남음)` : ''}.`);
-  lines.push('• ' + DAY_NOTE);
-  return '이용해 주셔서 감사합니다.\n' + lines.join('\n');
+  const lq = loginQuota(), left = quotaLeft(), parts = [];
+  if (lq?.left != null) parts.push(`남은 로그인 ${fmt(lq.left)}번`);
+  if (left != null) parts.push(`오늘 남은 산책 판단 ${fmt(left)}번`);
+  return '이용해 주셔서 감사합니다.' + (parts.length ? '\n' + parts.join(' · ') : '');
 }
 function applyAiLock(ai) {
   aiLocked = ai && ai.available === false && state.auth?.user?.role !== 'admin';
