@@ -121,14 +121,14 @@ test('캐리커처: 저장된 id(종류-번호)는 모두 실제 그림 파일�
   for (const [id, b] of Object.entries(app.BREEDS)) for (const art of b.art) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${art}.webp`, import.meta.url)), id + ':' + art);
 });
 test('캐릭터 매칭: 크기가 최우선 — 대형+단두종+이중모에 소형(말티즈·푸들·포메·비숑)이 나오지 않는다', () => {
-  const app = load(async () => OPTIONS), small = ['maltese', 'poodle', 'pomeranian', 'bichon'];
+  const app = load(async () => OPTIONS), small = ['maltese', 'poodle', 'pomeranian', 'bichon', 'french_bulldog'];
   const big = app.characterCandidates({ size: 'large', age: 'adult', flatFace: true, thickCoat: true });
   assert.equal(big[0].breed, 'saint_bernard'); assert.ok(big.every(c => !small.includes(c.breed)), JSON.stringify(big));
   for (const age of ['puppy', 'adult', 'senior']) for (const f of [false, true]) for (const t of [false, true]) {
     const c = app.characterCandidates({ size: 'large', age, flatFace: f, thickCoat: t }); assert.ok(c.length >= 1 && c.every(x => !small.includes(x.breed)), age + f + t);
     const s2 = app.characterCandidates({ size: 'small', age, flatFace: f, thickCoat: t }); assert.ok(s2.length && s2.every(x => x.breed !== 'retriever'), 'small' + age + f + t);
   }
-  const senior = app.characterCandidates({ size: 'large', age: 'senior' }); assert.equal(senior[0].art, 'saint-bernard-senior'); assert.equal(senior[0].ageVariant, null); const oldRetriever = senior.find(c => c.breed === 'retriever'); assert.equal(oldRetriever.ageVariant, 'senior'); assert.equal(oldRetriever.label, '어르신 리트리버');
+  const senior = app.characterCandidates({ size: 'large', age: 'senior' }); assert.equal(senior[0].art, 'husky-senior'); assert.equal(senior[0].ageVariant, null); const oldRetriever = senior.find(c => c.breed === 'retriever'); assert.equal(oldRetriever.ageVariant, 'senior'); assert.equal(oldRetriever.label, '어르신 리트리버');
   const pup = app.characterCandidates({ size: 'small', age: 'puppy' }); const pv = pup.find(c => c.ageVariant); assert.equal(pv.ageVariant, 'puppy'); assert.match(pv.label, /^아기 /);
   assert.equal(app.characterCandidates({ size: 'small', age: 'adult', thickCoat: true })[0].breed, 'pomeranian'); // 이중모 소형은 포메 먼저
   assert.equal(app.characterCandidates({ size: 'medium', age: 'adult' })[0].breed, 'corgi');
@@ -149,7 +149,9 @@ test('수정 창: 특성이 바뀌면 후보 다시 계산, 고른 그림이 새
   app.setDraft({ ...app.getDraft(), size: 'large' }); app.drawAvatarPicker(); assert.equal(app.getDraft().variant, 1, '대형 후보에 없는 소형 그림이면 1번으로');
   const second = app.characterCandidates({ size: 'large', age: 'adult' })[1].art; app.setDraft({ ...app.getDraft(), variant: 2 }); app.drawAvatarPicker(); // 대형 2번을 직접 고른 뒤
   app.setDraft({ ...app.getDraft(), age: 'senior' }); app.drawAvatarPicker(); // 노령견으로 바꿔도
-  const old = app.characterCandidates({ size: 'large', age: 'senior' }); assert.equal(old[app.getDraft().variant - 1].art, second, '새 후보에도 있으면 고른 그림 유지');
+  const old = app.characterCandidates({ size: 'large', age: 'senior' }), kept = old[app.getDraft().variant - 1];
+  assert.equal(kept.breed, app.characterCandidates({ size: 'large', age: 'adult' })[1].breed, '고른 견종 유지(노령 전용 그림이 있으면 그 그림)');
+  assert.equal(kept.art, second + '-senior');
   assert.ok(before);
   // 직접 고르지 않은 기본값(추가 창의 중형 1번=코기)은 대형으로 바꾸면 새 1번(리트리버)
   app.setDraft({ size: 'medium', age: 'adult', variant: 1, picked: false }); app.drawAvatarPicker();
@@ -160,7 +162,7 @@ test('수정 창: 특성이 바뀌면 후보 다시 계산, 고른 그림이 새
 test('서비스워커가 미리 받아 두는 캐리커처 파일이 모두 있다', () => {
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
   const names = [...sw.match(/const CARICATURES = \[([^\]]+)\]/)[1].matchAll(/'([a-z0-9-]+)'/g)].map(m => m[1]);
-  assert.equal(names.length, 22);
+  assert.equal(names.length, 28);
   for (const n of names) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${n}.webp`, import.meta.url)), n);
 });
 test('에이전트 말풍선·신호등·화면 모드', () => {
@@ -193,11 +195,11 @@ test('맞춤 산책 코스 항목도 장소 카드와 같은 2열(.split): 왼�
 
 test('새 유화 캐리커처 12종: 파일·견종 표 연결, 크기·단두종·이중모·나이별로 후보에 오른다', () => {
   const app = load(async () => OPTIONS);
-  const want = { saint_bernard: ['saint-bernard', 'saint-bernard-puppy', 'saint-bernard-senior'], pug: ['pug', 'pug-puppy', 'pug-senior'], shih_tzu: ['shih-tzu', 'shih-tzu-puppy', 'shih-tzu-senior'], husky: ['husky', 'husky-puppy'], shiba: ['shiba'] };
+  const want = { saint_bernard: ['saint-bernard', 'saint-bernard-puppy', 'saint-bernard-senior'], pug: ['pug', 'pug-puppy', 'pug-senior'], shih_tzu: ['shih-tzu', 'shih-tzu-puppy', 'shih-tzu-senior'], husky: ['husky', 'husky-puppy', 'husky-senior'], shiba: ['shiba', 'shiba-puppy', 'shiba-senior'] };
   for (const [id, files] of Object.entries(want)) { const b = app.BREEDS[id]; assert.deepEqual([...b.art, ...Object.values(b.ages).flat()].sort(), [...files].sort(), id); for (const f of files) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${f}.webp`, import.meta.url)), f); }
   const first = d => app.characterCandidates(d)[0];
-  assert.equal(first({ size: 'small', age: 'adult', flatFace: true }).art, 'pug');
-  assert.equal(first({ size: 'small', age: 'puppy', flatFace: true }).art, 'pug-puppy');
+  assert.equal(first({ size: 'small', age: 'adult', flatFace: true }).art, 'french-bulldog');
+  assert.equal(first({ size: 'small', age: 'puppy', flatFace: true }).art, 'french-bulldog-puppy');
   assert.equal(first({ size: 'small', age: 'senior', flatFace: true, thickCoat: true }).art, 'shih-tzu-senior');
   assert.equal(first({ size: 'large', age: 'puppy', thickCoat: true }).art, 'husky-puppy');
   assert.equal(first({ size: 'large', age: 'senior', flatFace: true, thickCoat: true }).art, 'saint-bernard-senior');
@@ -208,17 +210,37 @@ test('새 유화 캐리커처 12종: 파일·견종 표 연결, 크기·단두�
 test('#24 새 유화 12장 매칭: 조합별 1순위·전용 그림·같은 견종 중복 없음', () => {
   const app = load(async () => OPTIONS), c = d => app.characterCandidates(d), small = ['maltese', 'poodle', 'pomeranian', 'bichon', 'pug', 'shih_tzu'];
   assert.equal(c({ size: 'large', age: 'adult', flatFace: true, thickCoat: true })[0].art, 'saint-bernard');
-  const ls = c({ size: 'large', age: 'senior' }); assert.equal(ls[0].art, 'saint-bernard-senior'); assert.equal(ls[0].ageVariant, null); assert.equal(ls[0].label, '어르신 세인트버나드');
-  assert.ok(ls.slice(1).every(x => x.ageVariant === 'senior'), '나머지는 어르신 변형');
+  const ls = c({ size: 'large', age: 'senior', flatFace: true }); assert.equal(ls[0].art, 'saint-bernard-senior'); assert.equal(ls[0].ageVariant, null); assert.equal(ls[0].label, '어르신 세인트버나드');
+  assert.ok(ls.every(x => x.ageVariant === null || x.ageVariant === 'senior'), '전용 그림이거나 어르신 변형');
   const lp = c({ size: 'large', age: 'puppy' }); assert.equal(lp.slice(0, 2).map(x => x.art).sort().join(), 'husky-puppy,saint-bernard-puppy'); assert.equal(lp[0].label.startsWith('아기 '), true);
   assert.equal(c({ size: 'small', age: 'senior', flatFace: true }).slice(0, 2).map(x => x.art).join(), 'pug-senior,shih-tzu-senior');
-  assert.equal(c({ size: 'small', age: 'puppy', flatFace: true }).slice(0, 2).map(x => x.art).join(), 'pug-puppy,shih-tzu-puppy');
+  assert.equal(c({ size: 'small', age: 'puppy', flatFace: true }).slice(0, 3).map(x => x.art).join(), 'french-bulldog-puppy,pug-puppy,shih-tzu-puppy');
   assert.equal(c({ size: 'medium', age: 'adult', thickCoat: true }).slice(0, 2).map(x => x.art).join(), 'corgi,shiba');
   for (const size of ['small', 'medium', 'large']) for (const age of ['puppy', 'adult', 'senior']) for (const f of [false, true]) for (const t of [false, true]) {
     const list = c({ size, age, flatFace: f, thickCoat: t }); assert.equal(new Set(list.map(x => x.breed)).size, list.length, `${size}/${age}/${f}/${t} 같은 견종 중복`);
     if (size === 'large') assert.ok(list.every(x => !small.includes(x.breed)));
   }
-  // 비어 있는 칸은 나이 변형으로 폴백: 허스키 노령, 시바 강아지·노령
-  assert.equal(c({ size: 'large', age: 'senior' }).find(x => x.breed === 'husky').ageVariant, 'senior');
-  assert.equal(c({ size: 'medium', age: 'puppy', thickCoat: true }).find(x => x.breed === 'shiba').ageVariant, 'puppy');
+  // 비어 있는 칸은 나이 변형으로 폴백: 프렌치불독 노령
+  assert.equal(c({ size: 'small', age: 'senior', flatFace: true }).find(x => x.breed === 'french_bulldog').ageVariant, 'senior');
+});
+test('#25 2차 유화 8장: 프렌치불독(소형·단두종)·시바 아기/노령·허스키 노령·차우차우 노령(성견·아기 칸은 비움)', () => {
+  const app = load(async () => OPTIONS), c = d => app.characterCandidates(d), arts = d => c(d).map(x => x.art);
+  for (const f of ['french-bulldog', 'french-bulldog-puppy', 'shiba-puppy', 'shiba-senior', 'husky-senior', 'chow-chow-senior', 'saint-bernard-senior', 'pug-senior']) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${f}.webp`, import.meta.url)), f);
+  assert.equal(app.BREEDS.french_bulldog.size, 'small'); assert.equal(app.BREEDS.french_bulldog.brachy, true);
+  assert.equal(arts({ size: 'small', age: 'adult', flatFace: true })[0], 'french-bulldog');
+  assert.equal(arts({ size: 'small', age: 'puppy', flatFace: true })[0], 'french-bulldog-puppy');
+  assert.ok(arts({ size: 'large', age: 'adult' }).every(a => !a.startsWith('french-bulldog')), '대형에는 소형 프렌치불독이 나오지 않는다');
+  const fs2 = c({ size: 'small', age: 'senior', flatFace: true }).find(x => x.breed === 'french_bulldog'); assert.equal(fs2.art, 'french-bulldog'); assert.equal(fs2.ageVariant, 'senior'); // 노령 그림 없음 → 은빛 변형
+  const sp = c({ size: 'medium', age: 'puppy', thickCoat: true }); assert.equal(sp[0].art, 'shiba-puppy'); assert.equal(sp[0].ageVariant, null); assert.equal(sp[0].label, '아기 시바');
+  const ss = c({ size: 'medium', age: 'senior', thickCoat: true }); assert.equal(ss[0].art, 'shiba-senior'); assert.equal(ss[0].label, '어르신 시바');
+  const hs = c({ size: 'large', age: 'senior', thickCoat: true }); assert.equal(hs[0].art, 'husky-senior'); assert.equal(hs[0].ageVariant, null);
+  const cs = c({ size: 'medium', age: 'senior', flatFace: true, thickCoat: true }); assert.equal(cs[0].art, 'chow-chow-senior'); assert.equal(cs[0].label, '어르신 차우차우');
+  // 차우차우 성견·아기 그림이 아직 없으니 성견·아기 후보에는 노령 그림이 나오지 않는다('어르신' 그림이 성견에 붙지 않게)
+  for (const age of ['puppy', 'adult']) for (const size of ['small', 'medium', 'large']) for (const f of [false, true]) for (const t of [false, true])
+    assert.ok(!arts({ size, age, flatFace: f, thickCoat: t }).includes('chow-chow-senior'), `${size}/${age}/${f}/${t}`);
+  // 같은 견종 중복 없음·크기 두 단계 차이 없음
+  for (const size of ['small', 'medium', 'large']) for (const age of ['puppy', 'adult', 'senior']) for (const f of [false, true]) for (const t of [false, true]) {
+    const list = c({ size, age, flatFace: f, thickCoat: t }); assert.equal(new Set(list.map(x => x.breed)).size, list.length);
+    assert.ok(list.every(x => Math.abs({ small: 0, medium: 1, large: 2 }[app.BREEDS[x.breed].size] - { small: 0, medium: 1, large: 2 }[size]) <= 1));
+  }
 });

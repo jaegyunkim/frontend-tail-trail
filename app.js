@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-16';
+import { mountShelter } from './shelter.js?v=0.1.6-17';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -59,12 +59,12 @@ const BREEDS = {
   maltese:     { size: 'small',  brachy: false, doubleCoat: false, label: '말티즈',   art: ['maltese-1', 'maltese-4', 'maltese-5', 'maltese-2', 'maltese-3'], ages: {} },
   // 그림 파일은 소문자·숫자·하이픈 이름(예: saint-bernard-puppy). 아래는 그림이 생기면 art 에 이름만 넣으면 바로 후보가 된다(지금은 그림이 없어 건너뜀)
   saint_bernard:  { size: 'large',  brachy: true,  doubleCoat: true,  label: '세인트버나드', art: ['saint-bernard'], ages: { puppy: ['saint-bernard-puppy'], senior: ['saint-bernard-senior'] } },
-  husky:          { size: 'large',  brachy: false, doubleCoat: true,  label: '허스키',       art: ['husky'], ages: { puppy: ['husky-puppy'] } },
+  husky:          { size: 'large',  brachy: false, doubleCoat: true,  label: '허스키',       art: ['husky'], ages: { puppy: ['husky-puppy'], senior: ['husky-senior'] } },
   samoyed:        { size: 'large',  brachy: false, doubleCoat: true,  label: '사모예드',     art: [], ages: {} },
-  chow_chow:      { size: 'medium', brachy: true,  doubleCoat: true,  label: '차우차우',     art: [], ages: {} },
+  chow_chow:      { size: 'medium', brachy: true,  doubleCoat: true,  label: '차우차우',     art: [], ages: { senior: ['chow-chow-senior'] } }, // 성견·아기 그림은 아직 없음: 노령 그림을 성견 칸에 쓰지 않고 비워 둔다
   jindo:          { size: 'medium', brachy: false, doubleCoat: true,  label: '진돗개',       art: [], ages: {} },
-  shiba:          { size: 'medium', brachy: false, doubleCoat: true,  label: '시바',         art: ['shiba'], ages: {} },
-  french_bulldog: { size: 'medium', brachy: true,  doubleCoat: false, label: '프렌치불독',   art: [], ages: {} },
+  shiba:          { size: 'medium', brachy: false, doubleCoat: true,  label: '시바',         art: ['shiba'], ages: { puppy: ['shiba-puppy'], senior: ['shiba-senior'] } },
+  french_bulldog: { size: 'small',  brachy: true,  doubleCoat: false, label: '프렌치불독',   art: ['french-bulldog'], ages: { puppy: ['french-bulldog-puppy'] } },
   pug:            { size: 'small',  brachy: true,  doubleCoat: false, label: '퍼그',         art: ['pug'], ages: { puppy: ['pug-puppy'], senior: ['pug-senior'] } },
   shih_tzu:       { size: 'small',  brachy: true,  doubleCoat: true,  label: '시츄',         art: ['shih-tzu'], ages: { puppy: ['shih-tzu-puppy'], senior: ['shih-tzu-senior'] } },
   chihuahua:      { size: 'small',  brachy: false, doubleCoat: false, label: '치와와',       art: [], ages: {} },
@@ -164,13 +164,19 @@ function drawDogDraftChips() {
   updateDogHints();
 }
 /** 캐릭터 고르기: 지금 고른 크기·단두종·털에 맞는 종류의 5개 중 1개 */
-let pickerArts = null; // 직전에 보여 준 후보(특성이 바뀔 때 사용자가 고른 그림이 새 후보에도 있으면 유지)
+let pickerArts = null; // 직전에 보여 준 후보 {art, breed}(특성이 바뀔 때 사용자가 고른 그림, 없으면 같은 견종이 새 후보에도 있으면 유지)
 function drawAvatarPicker() {
   const body = draftBody(), cands = characterCandidates(body), box = $('#dogAvatar');
-  // 사용자가 직접 고른 그림(또는 저장돼 있던 그림)이 새 후보에도 있으면 유지, 아니면 새 조합의 1번
-  if (pickerArts) { const chosen = pickerArts[dogDraft.variant - 1], i = dogDraft.picked ? cands.findIndex(c => c.art === chosen) : -1; dogDraft.variant = i >= 0 ? i + 1 : 1; }
+  // 사용자가 직접 고른 그림(또는 저장돼 있던 그림)이 새 후보에도 있으면 유지, 그림은 없어도 같은 견종이 있으면 그 견종
+  // (예: 허스키를 고른 채 노령견으로 바꾸면 노령 허스키 전용 그림), 둘 다 없으면 새 조합의 1번
+  if (pickerArts) {
+    const chosen = pickerArts[dogDraft.variant - 1];
+    let i = dogDraft.picked && chosen ? cands.findIndex(c => c.art === chosen.art) : -1;
+    if (i < 0 && dogDraft.picked && chosen) i = cands.findIndex(c => c.breed === chosen.breed);
+    dogDraft.variant = i >= 0 ? i + 1 : 1;
+  }
   if (dogDraft.variant > cands.length) dogDraft.variant = 1;
-  pickerArts = cands.map(c => c.art); const v = dogDraft.variant;
+  pickerArts = cands.map(c => ({ art: c.art, breed: c.breed })); const v = dogDraft.variant;
   $('#dogAvatarKind').textContent = comboLabel(body);
   box.innerHTML = cands.map((c, i) => { const n = i + 1; return `<button type="button" class="ava-opt${n === v ? ' on' : ''}" role="radio" aria-checked="${n === v}" data-n="${n}" aria-label="${esc(c.label)}"><span class="ava-img${c.ageVariant ? ' age-' + c.ageVariant : ''}${c.ageBadge ? ' badge-' + c.ageBadge : ''}"><img src="${caricatureSrc(c.art)}" alt="" width="64" height="64" decoding="async"></span><small>${esc(c.label)}</small></button>`; }).join('');
   box.querySelectorAll('.ava-opt').forEach(b => b.onclick = () => { dogDraft.variant = Number(b.dataset.n); dogDraft.picked = true; drawAvatarPicker(); scheduleDogLive(); });
