@@ -190,7 +190,10 @@ test('맞춤 산책 코스 항목도 장소 카드와 같은 2열(.split): 왼�
   const src = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8'), css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.match(src, /<li class="tc-item split"><span class="tc-rank"[^>]*>[^<]*<\/span><div class="tc-body split-main">/);
   assert.match(src, /<div class="split-side"><div class="links">\$\{tcLinks\(it\)\}/);
-  assert.match(css, /:root\[data-wide-actions="row"\] \.split-side \{/); // 넓은 화면 스위치 한 곳
+  // 600px 이상은 기본으로 버튼 가로 한 줄(스위치 속성 없이), 분기 흔적이 남지 않는다
+  const wide = css.match(/@media \(min-width: 600px\) \{\n  \.split-side, [^\n]*\{ flex-direction: row;[\s\S]*?\n\}/); assert.ok(wide, '600px 이상 .split-side 가로 배치');
+  assert.match(wide[0], /\.split-side \.links[^{]*\{ flex-direction: row;/);
+  assert.doesNotMatch(css + src, /data-wide-actions|wideActions/);
 });
 
 test('새 유화 캐리커처 12종: 파일·견종 표 연결, 크기·단두종·이중모·나이별로 후보에 오른다', () => {
