@@ -47,7 +47,7 @@ function makeContext(apiImpl) {
   return vm.createContext(ctx);
 }
 const FOOTER = `
-globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName, caricatureOf, caricatureSrc, AVATAR_SET, agentSay, applyTheme,
+globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName, characterCandidates, characterFor, comboLabel, caricatureSrc, BREEDS, drawAvatarPicker, setDraft: d => { dogDraft = d; }, getDraft: () => dogDraft, agentSay, applyTheme,
   setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel };`;
 const load = apiImpl => { const ctx = makeContext(apiImpl); vm.runInContext(SRC.replace(/^import .*$/gm, '') + FOOTER, ctx, { filename: 'app.js' }); return ctx.__app; };
 
@@ -112,15 +112,50 @@ test('꼬리일기 시간: 시간·분 고르기를 분으로 환산(기본 30�
   assert.match(h, /class="row diary-trio">.*id="diaryDog".*id="diaryDate".*id="diaryHours"/);
 });
 
-test('캐리커처: 저장된 예전 아이콘 id(종류-번호 25개)가 모두 실제 그림 파일로 바뀌고, 모르는 값은 리트리버', () => {
+test('캐리커처: 저장된 id(종류-번호)는 모두 실제 그림 파일로 보이고, 깨지지 않는다(상대 경로)', () => {
   const app = load(async () => OPTIONS);
-  for (const k of ['small', 'medium', 'large', 'flat', 'coat']) for (let n = 1; n <= 5; n++) {
-    const src = app.caricatureSrc(app.caricatureOf(`${k}-${n}`));
-    assert.match(src, /^assets\/caricatures\/[a-z0-9-]+\.webp$/); // 상대 경로(GitHub Pages 하위 경로에서도 동작)
-    assert.ok(fs.existsSync(new URL('../' + src, import.meta.url)), src);
+  for (const size of ['small', 'medium', 'large']) for (const age of ['puppy', 'adult', 'senior']) for (const flatFace of [false, true]) for (const thickCoat of [false, true])
+    for (let n = 1; n <= 5; n++) { const d = { size, age, flatFace, thickCoat, avatar: `${flatFace ? 'flat' : thickCoat ? 'coat' : size}-${n}` };
+      const src = app.caricatureSrc(app.characterFor(d).art); assert.match(src, /^assets\/caricatures\/[a-z0-9-]+\.webp$/); assert.ok(fs.existsSync(new URL('../' + src, import.meta.url)), src); }
+  assert.equal(app.characterFor({ avatar: '엉뚱한값', size: 'large' }).art, 'retriever');
+  for (const [id, b] of Object.entries(app.BREEDS)) for (const art of b.art) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${art}.webp`, import.meta.url)), id + ':' + art);
+});
+test('캐릭터 매칭: 크기가 최우선 — 대형+단두종+이중모에 소형(말티즈·푸들·포메·비숑)이 나오지 않는다', () => {
+  const app = load(async () => OPTIONS), small = ['maltese', 'poodle', 'pomeranian', 'bichon'];
+  const big = app.characterCandidates({ size: 'large', age: 'adult', flatFace: true, thickCoat: true });
+  assert.equal(big[0].breed, 'retriever'); assert.ok(big.every(c => !small.includes(c.breed)), JSON.stringify(big));
+  for (const age of ['puppy', 'adult', 'senior']) for (const f of [false, true]) for (const t of [false, true]) {
+    const c = app.characterCandidates({ size: 'large', age, flatFace: f, thickCoat: t }); assert.ok(c.length >= 1 && c.every(x => !small.includes(x.breed)), age + f + t);
+    const s2 = app.characterCandidates({ size: 'small', age, flatFace: f, thickCoat: t }); assert.ok(s2.length && s2.every(x => x.breed !== 'retriever'), 'small' + age + f + t);
   }
-  assert.equal(app.caricatureOf('엉뚱한값'), 'retriever'); assert.equal(app.caricatureOf(null), 'retriever');
-  assert.equal(new Set(Object.values(app.AVATAR_SET).flat()).size, 10);
+  const senior = app.characterCandidates({ size: 'large', age: 'senior' }); assert.equal(senior[0].ageVariant, 'senior'); assert.equal(senior[0].label, '어르신 리트리버');
+  const pup = app.characterCandidates({ size: 'small', age: 'puppy' }); assert.equal(pup[0].ageVariant, 'puppy'); assert.match(pup[0].label, /^아기 /);
+  assert.equal(app.characterCandidates({ size: 'small', age: 'adult', thickCoat: true })[0].breed, 'pomeranian'); // 이중모 소형은 포메 먼저
+  assert.equal(app.characterCandidates({ size: 'medium', age: 'adult' })[0].breed, 'corgi');
+  assert.equal(app.comboLabel({ size: 'large', age: 'senior', flatFace: true, thickCoat: true }), '대형 · 노령견 · 단두종 · 이중모');
+  for (const d of [{ size: 'small' }, { size: 'medium' }, { size: 'large' }]) assert.ok(app.characterCandidates(d).length <= 5);
+});
+test('새 견종은 표 한 줄(그림 이름)만 넣으면 후보가 된다', () => {
+  const app = load(async () => OPTIONS);
+  app.BREEDS.saint_bernard.art = ['saint_bernard'];
+  const c = app.characterCandidates({ size: 'large', age: 'adult', flatFace: true, thickCoat: true }); assert.equal(c[0].breed, 'saint_bernard');
+  app.BREEDS.saint_bernard.ages = { senior: ['saint_bernard-senior'] };
+  const s = app.characterCandidates({ size: 'large', age: 'senior', flatFace: true, thickCoat: true }); assert.equal(s[0].art, 'saint_bernard-senior'); assert.equal(s[0].ageVariant, null);
+});
+test('수정 창: 특성이 바뀌면 후보 다시 계산, 고른 그림이 새 후보에 없으면 1번, 있으면 유지', () => {
+  const app = load(async () => OPTIONS); app.setDogs(DOGS);
+  app.setDraft({ size: 'small', age: 'adult', variant: 2, picked: true }); app.drawAvatarPicker(); // 소형 2번을 직접 고름
+  const before = app.characterCandidates({ size: 'small', age: 'adult' })[1].art;
+  app.setDraft({ ...app.getDraft(), size: 'large' }); app.drawAvatarPicker(); assert.equal(app.getDraft().variant, 1, '대형 후보에 없는 소형 그림이면 1번으로');
+  app.setDraft({ ...app.getDraft(), variant: 2 }); app.drawAvatarPicker(); // 대형 2번(코기)을 직접 고른 뒤
+  app.setDraft({ ...app.getDraft(), age: 'senior' }); app.drawAvatarPicker(); // 노령견으로 바꿔도
+  const old = app.characterCandidates({ size: 'large', age: 'senior' }); assert.equal(old[app.getDraft().variant - 1].art, 'corgi', '새 후보에도 있으면 고른 그림 유지');
+  assert.ok(before);
+  // 직접 고르지 않은 기본값(추가 창의 중형 1번=코기)은 대형으로 바꾸면 새 1번(리트리버)
+  app.setDraft({ size: 'medium', age: 'adult', variant: 1, picked: false }); app.drawAvatarPicker();
+  app.setDraft({ ...app.getDraft(), size: 'large' }); app.drawAvatarPicker(); assert.equal(app.getDraft().variant, 1);
+  // 소형은 같은 크기 그림을 이웃 크기(코기)보다 먼저
+  assert.ok(app.characterCandidates({ size: 'small', age: 'puppy' }).every(c => c.breed !== 'corgi'));
 });
 test('서비스워커가 미리 받아 두는 캐리커처 파일이 모두 있다', () => {
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');

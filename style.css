@@ -1126,3 +1126,12 @@ dialog::backdrop { background: var(--backdrop); }
   .split-side .links .link-btn > span[aria-hidden] { display: none; }
   .tc-item .tc-rank { display: none; }
 }
+/* 캐릭터 나이 변형(#23): 노령 전용 그림이 없으면 은빛 톤 + '어르신' 배지, 강아지는 '아기' 배지(그림은 그대로) */
+.dog-ava.age-senior img, .ava-img.age-senior img { filter: grayscale(.55) sepia(.18) brightness(1.06) contrast(.94); }
+.dog-ava.age-senior .ava-badge { background: #64748B; }
+.ava-img { position: relative; }
+.ava-img.age-senior::after, .ava-img.age-puppy::after { position: absolute; right: 2px; bottom: 2px; padding: 1px 5px; border-radius: 999px; font-size: 10px; font-weight: 800; line-height: 1.4; color: #fff; }
+.ava-img.age-senior::after { content: '어르신'; background: #64748B; }
+.ava-img.age-puppy::after { content: '아기'; background: var(--coral); }
+.ava-opt .ava-img { overflow: hidden; }
+#dogAvatarKind { font-weight: 700; color: var(--accent-text); }

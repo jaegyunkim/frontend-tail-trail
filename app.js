@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-13';
+import { mountShelter } from './shelter.js?v=0.1.6-14';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -44,24 +44,63 @@ const SIZE_EX = { small: '예: 치와와·말티즈·푸들·포메라니안·�
 const AGE_HINT = { puppy: '1살 미만. 예방접종 중이면 짧게, 사람 많은 곳은 피해요', adult: '1~7살. 가장 활동적인 시기예요', senior: '7살 이상(대형견은 5~6살부터). 천천히 평평한 길로 걸어요' };
 const sizeLabel = id => dogOptions.sizes.find(s => s.id === id)?.label ?? id, ageLabel = id => dogOptions.ages.find(a => a.id === id)?.label ?? id;
 const dogSub = d => [sizeLabel(d.size), ageLabel(d.age), d.flatFace ? '단두종' : '', d.thickCoat ? '두꺼운 털' : ''].filter(Boolean).join(' · ');
-// 캐릭터: 종류(크기·단두종·털로 정해짐) 5개 × 모양 5개 = 저장 id `{종류}-{1~5}`(백엔드가 이 형식만 받는다).
-// 그림은 견종 유화 캐리커처(assets/caricatures/*.webp). 예전 평면 아이콘 id(small-2 등)도 그대로 아래 표로 새 그림이 된다.
-const KIND_LABEL = { small: '소형견', medium: '중형견', large: '대형견', flat: '단두종', coat: '두꺼운 털' };
-const CARICATURE = { 'maltese-1': '말티즈', 'maltese-2': '말티 달리기', 'maltese-3': '말티 갸우뚱', 'maltese-4': '말티 윙크', 'maltese-5': '말티 리본', poodle: '푸들', pomeranian: '포메', corgi: '코기', bichon: '비숑', retriever: '리트리버' };
-const AVATAR_SET = {
-  small: ['maltese-1', 'poodle', 'pomeranian', 'bichon', 'maltese-5'],
-  medium: ['corgi', 'poodle', 'bichon', 'maltese-2', 'retriever'],
-  large: ['retriever', 'corgi', 'poodle', 'bichon', 'maltese-3'],
-  flat: ['maltese-4', 'bichon', 'pomeranian', 'poodle', 'maltese-1'],
-  coat: ['pomeranian', 'retriever', 'bichon', 'corgi', 'maltese-2']
+// ===== 캐릭터 매칭(#23) =====
+// 저장 id 는 백엔드 형식 그대로 `{종류}-{1~5}`(cleanAvatar 가 이 형식만 받음). 번호는 "그 아이의 4가지 특성
+// (크기·나이·단두종·이중모)으로 계산한 후보 목록에서 몇 번째인가"로 읽는다 → 백엔드 변경 없이 견종이 늘어나도 된다.
+// 새 유화 캐리커처 추가: assets/caricatures/{그림이름}.webp(256px) 를 넣고 아래 BREEDS 의 art 에 이름을 적으면 끝.
+//   ages 에 나이 전용 그림을 적으면 그 나이에서 최우선, 없으면 나이 변형(강아지 '아기' 배지 / 노령 은빛 톤 + '어르신' 배지)으로 보여 준다.
+const BREEDS = {
+  //            크기        단두종        이중모            이름        그림(성견 기본, 앞이 대표)                     나이 전용 그림
+  retriever:   { size: 'large',  brachy: false, doubleCoat: true,  label: '리트리버', art: ['retriever'], ages: {} },
+  corgi:       { size: 'medium', brachy: false, doubleCoat: true,  label: '코기',     art: ['corgi'], ages: {} },
+  pomeranian:  { size: 'small',  brachy: false, doubleCoat: true,  label: '포메',     art: ['pomeranian'], ages: {} },
+  poodle:      { size: 'small',  brachy: false, doubleCoat: false, label: '푸들',     art: ['poodle'], ages: {} },
+  bichon:      { size: 'small',  brachy: false, doubleCoat: false, label: '비숑',     art: ['bichon'], ages: {} },
+  maltese:     { size: 'small',  brachy: false, doubleCoat: false, label: '말티즈',   art: ['maltese-1', 'maltese-4', 'maltese-5', 'maltese-2', 'maltese-3'], ages: {} },
+  // 아래는 그림이 생기면 art 에 이름만 넣으면 바로 후보가 된다(지금은 그림이 없어 건너뜀)
+  saint_bernard:  { size: 'large',  brachy: true,  doubleCoat: true,  label: '세인트버나드', art: [], ages: {} },
+  husky:          { size: 'large',  brachy: false, doubleCoat: true,  label: '허스키',       art: [], ages: {} },
+  samoyed:        { size: 'large',  brachy: false, doubleCoat: true,  label: '사모예드',     art: [], ages: {} },
+  chow_chow:      { size: 'medium', brachy: true,  doubleCoat: true,  label: '차우차우',     art: [], ages: {} },
+  jindo:          { size: 'medium', brachy: false, doubleCoat: true,  label: '진돗개',       art: [], ages: {} },
+  shiba:          { size: 'medium', brachy: false, doubleCoat: true,  label: '시바',         art: [], ages: {} },
+  french_bulldog: { size: 'medium', brachy: true,  doubleCoat: false, label: '프렌치불독',   art: [], ages: {} },
+  pug:            { size: 'small',  brachy: true,  doubleCoat: false, label: '퍼그',         art: [], ages: {} },
+  shih_tzu:       { size: 'small',  brachy: true,  doubleCoat: false, label: '시츄',         art: [], ages: {} },
+  chihuahua:      { size: 'small',  brachy: false, doubleCoat: false, label: '치와와',       art: [], ages: {} },
+  dachshund:      { size: 'small',  brachy: false, doubleCoat: false, label: '닥스훈트',     art: [], ages: {} }
 };
+const ART_NAME = { 'maltese-2': '말티 달리기', 'maltese-3': '말티 갸우뚱', 'maltese-4': '말티 윙크', 'maltese-5': '말티 리본' };
 const DEFAULT_CARICATURE = 'retriever'; // 모르는 값은 대표 마스코트
-const caricatureOf = id => { const m = /^(small|medium|large|flat|coat)-([1-5])$/.exec(String(id ?? '')); return m ? AVATAR_SET[m[1]][Number(m[2]) - 1] : DEFAULT_CARICATURE; };
-const caricatureSrc = name => `assets/caricatures/${CARICATURE[name] ? name : DEFAULT_CARICATURE}.webp`;
+const SIZE_RANK = { small: 0, medium: 1, large: 2 }, SIZE_KO = { small: '소형', medium: '중형', large: '대형' }, AGE_KO = { puppy: '강아지', adult: '성견', senior: '노령견' };
+const AGE_PREFIX = { puppy: '아기 ', senior: '어르신 ' };
+/** 4가지 특성 → 후보(최대 5). 크기가 최우선: 크기가 두 단계 다르면(소형↔대형) 절대 넣지 않고, 같은 크기 → 한 단계 차이 순.
+ *  그다음 단두종·이중모가 맞는 견종, 나이 전용 그림 순. 견종마다 대표 1장을 먼저 고르고 남는 칸만 같은 견종의 다른 그림으로 채운다.
+ *  같은·이웃 크기 그림이 5장이 안 되면 다른 크기로 채우지 않고 후보 수를 줄인다. */
+function characterCandidates(d = {}) {
+  const size = SIZE_RANK[d.size] != null ? d.size : 'medium', age = AGE_KO[d.age] ? d.age : 'adult';
+  const flat = Boolean(d.flatFace), coat = Boolean(d.thickCoat), list = [];
+  for (const [id, b] of Object.entries(BREEDS)) {
+    const gap = Math.abs(SIZE_RANK[b.size] - SIZE_RANK[size]); if (gap > 1) continue;
+    const arts = [...(b.ages?.[age] ?? []), ...b.art.filter(x => !(b.ages?.[age] ?? []).includes(x))]; if (!arts.length) continue;
+    // 대형 아이에게 중형은 '중대형'으로 허용하되 같은 크기보다 뒤. 소형 아이에게 중형도 같은 방식
+    let score = (gap === 0 ? 100 : 40) + (flat === b.brachy ? (flat ? 25 : 5) : flat ? -10 : -3) + (coat === b.doubleCoat ? (coat ? 20 : 4) : coat ? -8 : -2);
+    arts.forEach((art, i) => list.push({ art, breed: id, gap, rank: i, score: score - i * 0.5 + ((b.ages?.[age] ?? []).includes(art) ? 30 : 0), dedicated: (b.ages?.[age] ?? []).includes(art) }));
+  }
+  // 순서: 같은 크기 견종 대표 → 같은 크기의 다른 그림 → 이웃 크기 대표 → 이웃 크기의 다른 그림 (각 묶음 안은 점수순)
+  const tier = x => x.gap * 2 + (x.rank > 0 ? 1 : 0);
+  list.sort((x, y) => tier(x) - tier(y) || y.score - x.score || x.breed.localeCompare(y.breed));
+  return list.slice(0, 5).map(x => ({ art: x.art, breed: x.breed, ageVariant: x.dedicated ? null : (age === 'adult' ? null : age),
+    label: (x.dedicated || age === 'adult' ? '' : AGE_PREFIX[age]) + (ART_NAME[x.art] ?? BREEDS[x.breed].label) }));
+}
+const comboLabel = d => [SIZE_KO[d.size] ?? '중형', AGE_KO[d.age] ?? '성견', d.flatFace ? '단두종' : '', d.thickCoat ? '이중모' : ''].filter(Boolean).join(' · ');
 const kindOf = d => d?.flatFace ? 'flat' : d?.thickCoat ? 'coat' : (['small', 'medium', 'large'].includes(d?.size) ? d.size : 'medium');
 const avatarId = d => /^(small|medium|large|flat|coat)-[1-5]$/.test(d?.avatar ?? '') ? d.avatar : `${kindOf(d)}-${((Number(d?.id) || 0) % 5) + 1}`;
-const AGE_BADGE = { puppy: '아기', senior: '노령' };
-const avatar = (d, cls = '') => `<span class="dog-ava ${cls}" aria-hidden="true"><img src="${caricatureSrc(caricatureOf(avatarId(d)))}" alt="" width="96" height="96" loading="lazy" decoding="async">${AGE_BADGE[d?.age] ? `<i class="ava-badge">${AGE_BADGE[d.age]}</i>` : ''}</span>`;
+/** 저장 id 의 번호 → 그 아이 특성의 후보 중 그 순번(후보가 적으면 1번) */
+const characterFor = d => { const c = characterCandidates(d), n = Number(avatarId(d).slice(-1)) || 1; return c[n - 1] ?? c[0] ?? { art: DEFAULT_CARICATURE, label: '리트리버', ageVariant: null }; };
+const caricatureSrc = name => `assets/caricatures/${Object.values(BREEDS).some(b => b.art.includes(name) || Object.values(b.ages ?? {}).flat().includes(name)) ? name : DEFAULT_CARICATURE}.webp`;
+const AGE_BADGE = { puppy: '아기', senior: '어르신' };
+const avatar = (d, cls = '') => { const ch = characterFor(d); return `<span class="dog-ava ${cls}${ch.ageVariant ? ' age-' + ch.ageVariant : ''}" aria-hidden="true"><img src="${caricatureSrc(ch.art)}" alt="" width="96" height="96" loading="lazy" decoding="async">${AGE_BADGE[d?.age] ? `<i class="ava-badge">${AGE_BADGE[d.age]}</i>` : ''}</span>`; };
 const dogFull = () => dogs.length >= dogOptions.maxDogs;
 const curDog = () => dogs.find(d => d.id === sel.dogId) ?? dogs.find(d => d.selected) ?? dogs[0] ?? null;
 
@@ -124,11 +163,18 @@ function drawDogDraftChips() {
   updateDogHints();
 }
 /** 캐릭터 고르기: 지금 고른 크기·단두종·털에 맞는 종류의 5개 중 1개 */
+let pickerArts = null; // 직전에 보여 준 후보(특성이 바뀔 때 사용자가 고른 그림이 새 후보에도 있으면 유지)
 function drawAvatarPicker() {
-  const kind = kindOf(draftBody()), box = $('#dogAvatar'), v = dogDraft.variant;
-  $('#dogAvatarKind').textContent = `${KIND_LABEL[kind]} 캐릭터`;
-  box.innerHTML = AVATAR_SET[kind].map((name, i) => { const n = i + 1; return `<button type="button" class="ava-opt${n === v ? ' on' : ''}" role="radio" aria-checked="${n === v}" data-n="${n}" aria-label="${CARICATURE[name]}"><span class="ava-img"><img src="${caricatureSrc(name)}" alt="" width="64" height="64" decoding="async"></span><small>${CARICATURE[name]}</small></button>`; }).join('');
-  box.querySelectorAll('.ava-opt').forEach(b => b.onclick = () => { dogDraft.variant = Number(b.dataset.n); drawAvatarPicker(); scheduleDogLive(); });
+  const body = draftBody(), cands = characterCandidates(body), box = $('#dogAvatar');
+  // 사용자가 직접 고른 그림(또는 저장돼 있던 그림)이 새 후보에도 있으면 유지, 아니면 새 조합의 1번
+  if (pickerArts) { const chosen = pickerArts[dogDraft.variant - 1], i = dogDraft.picked ? cands.findIndex(c => c.art === chosen) : -1; dogDraft.variant = i >= 0 ? i + 1 : 1; }
+  if (dogDraft.variant > cands.length) dogDraft.variant = 1;
+  pickerArts = cands.map(c => c.art); const v = dogDraft.variant;
+  $('#dogAvatarKind').textContent = comboLabel(body);
+  box.innerHTML = cands.map((c, i) => { const n = i + 1; return `<button type="button" class="ava-opt${n === v ? ' on' : ''}" role="radio" aria-checked="${n === v}" data-n="${n}" aria-label="${esc(c.label)}"><span class="ava-img${c.ageVariant ? ' age-' + c.ageVariant : ''}"><img src="${caricatureSrc(c.art)}" alt="" width="64" height="64" decoding="async"></span><small>${esc(c.label)}</small></button>`; }).join('');
+  box.querySelectorAll('.ava-opt').forEach(b => b.onclick = () => { dogDraft.variant = Number(b.dataset.n); dogDraft.picked = true; drawAvatarPicker(); scheduleDogLive(); });
+  // 상단 미리보기 그림은 서버 응답을 기다리지 않고 바로 바꾼다
+  const live = document.querySelector('#dogLive .dog-ava'); if (live) live.outerHTML = avatar({ ...body, avatar: body.avatar }, 'lg');
 }
 function updateDogHints() { drawAvatarPicker(); $('#dogSizeHint').textContent = SIZE_EX[dogDraft.size] ?? ''; $('#dogAgeHint').textContent = AGE_HINT[dogDraft.age] ?? ''; scheduleDogLive(); }
 const draftBody = () => ({ name: $('#dogName').value.trim(), size: dogDraft.size, age: dogDraft.age, flatFace: $('#dogFlat').checked, thickCoat: $('#dogCoat').checked, get avatar() { return `${kindOf(this)}-${dogDraft.variant}`; } });
@@ -154,7 +200,7 @@ function checkDogName() {
 $('#dogName').addEventListener('input', checkDogName);
 function openDogForm(dog = null) {
   dogEditId = dog?.id ?? null; const first = !dogs.length;
-  dogDraft = dog ? { size: dog.size, age: dog.age, variant: Number(avatarId(dog).slice(-1)) } : { size: 'medium', age: 'adult', variant: 1 };
+  dogDraft = dog ? { size: dog.size, age: dog.age, variant: Math.min(Number(avatarId(dog).slice(-1)) || 1, characterCandidates(dog).length || 1), picked: true } : { size: 'medium', age: 'adult', variant: 1, picked: false }; pickerArts = null;
   $('#dogName').value = dog?.name ?? ''; $('#dogFlat').checked = Boolean(dog?.flatFace); $('#dogCoat').checked = Boolean(dog?.thickCoat); $('#dogMsg').textContent = '';
   $('#dogFormTitle').textContent = dog ? `${dog.name} 정보 수정` : first ? '우리 아이 처음 등록' : `아이 추가 등록 (${dogs.length + 1}/${dogOptions.maxDogs}번째)`;
   $('#dogSubmit').textContent = dog ? '수정 저장' : first ? '첫 아이 등록하기' : '추가 등록하기';
