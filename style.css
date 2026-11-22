@@ -1001,17 +1001,17 @@ dialog::backdrop { background: var(--backdrop); }
 }
 @media (max-width: 340px) { .brand > div { display: none; } }
 /* 가까운 곳 장소 목록: 칸마다 은은한 카드, 이름은 굵고 또렷하게(밑줄은 호버·포커스 때만), 배지는 보조색
-   좁은 화면: [이름 … 거리] / 배지 / 주소 / [전화·지도·길찾기]  ·  600px 이상: [이름·배지·주소 | 거리 | 버튼] 한 줄 */
-.places li.place { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name dist" "badge badge" "addr addr" "pet pet" "links links"; align-items: center; column-gap: 12px; row-gap: 6px; padding: 14px 16px; margin: 0 0 10px; background: var(--card); border: 1px solid var(--hair); border-radius: var(--r-sm); font-size: 15px; }
+   배치는 아래 '장소 카드 v2' */
+.places li.place { margin: 0 0 10px; background: var(--card); border: 1px solid var(--hair); border-radius: var(--r-sm); font-size: 15px; }
 .places li.place:last-child { margin-bottom: 0; border-bottom: 1px solid var(--hair); }
 .sec .places li.place { background: var(--soft); border-color: transparent; }
-.places .pl-name { grid-area: name; margin: 0; font-size: 17px; font-weight: 800; line-height: 1.35; color: var(--ink); letter-spacing: -.01em; min-width: 0; overflow-wrap: anywhere; }
+.places .pl-name { margin: 0; font-size: 17px; font-weight: 800; line-height: 1.35; color: var(--ink); letter-spacing: -.01em; min-width: 0; overflow-wrap: anywhere; }
 .places .pl-name a.ext { color: inherit; font-weight: inherit; text-decoration: none; border-radius: 6px; }
 .places .pl-name a.ext::after { content: ' ↗'; font-size: 12px; color: var(--mute); }
 .places .pl-name a.ext:hover, .places .pl-name a.ext:focus-visible { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
 .places .pl-name a.ext:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.places .pl-dist { grid-area: dist; justify-self: end; font-size: 15px; font-weight: 800; color: var(--accent-text); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.places .pl-badges { grid-area: badge; display: flex; flex-wrap: wrap; gap: 4px; }
+.places .pl-dist { justify-self: end; font-size: 15px; font-weight: 800; color: var(--accent-text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.places .pl-badges { display: flex; flex-wrap: wrap; gap: 4px; }
 .places .pl-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--r-pill); background: var(--paper); border: 1px solid var(--hair); color: var(--ink2); font-size: 12.5px; font-weight: 600; line-height: 1.5; }
 .places .pl-badge.lic { background: var(--accent-soft); border-color: transparent; color: var(--accent-text); }
 .places .pl-badge.open24 { background: var(--danger-soft); border-color: transparent; color: var(--danger-text); }
@@ -1069,3 +1069,20 @@ dialog::backdrop { background: var(--backdrop); }
 .tc-card.caution .tc-say { background: var(--caution-soft, var(--soft)); color: var(--caution-text, var(--ink)); } .tc-card.indoor .tc-say { background: var(--coral-soft); color: var(--coral-text); }
 .tc-body .links { display: flex; flex-wrap: wrap; gap: 6px; }
 .tc-body .links .link-btn { min-height: 36px; padding: 4px 10px; font-size: 13px; }
+.places .pl-addr { margin: 0; font-size: 14px; color: var(--mute); line-height: 1.45; }
+.places li.place .pet-cond { margin: 0; }
+.places li.place .links .link-btn { border-width: 1.5px; white-space: nowrap; }
+/* 장소 카드 v2: 모든 폭에서 [왼쪽 이름·배지·주소 | 오른쪽 거리 + 버튼 세로(같은 너비)] — 오른쪽 빈 여백을 없애고 카드 높이를 줄인다 */
+.places li.place { display: flex; align-items: flex-start; gap: 12px; padding: 12px 12px 12px 16px; }
+.places li.place .pl-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.places li.place .pl-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.places li.place .pl-side { flex: none; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.places li.place .pl-dist { text-align: right; line-height: 1.3; padding: 1px 2px 0; }
+.places li.place .links { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px; margin: 0; }
+.places li.place .links .link-btn { flex: none; width: 100%; min-height: 40px; height: 40px; padding: 0 12px; font-size: 14px; justify-content: space-between; gap: 6px; }
+.places li.place .links:not(:has(> :nth-child(3))) .link-btn { min-height: 44px; height: 44px; }
+@media (max-width: 360px) { .places li.place { gap: 10px; padding: 12px 10px 12px 14px; } .places li.place .links .link-btn { padding: 0 9px; font-size: 13.5px; } }
+/* 버튼 3개(전화 포함)일 때: 간격·위아래 여백을 줄여 카드가 덜 길어지게(버튼 40px 유지) */
+.places li.place:has(.links > :nth-child(3)) { padding-top: 10px; padding-bottom: 10px; }
+.places li.place:has(.links > :nth-child(3)) .pl-side, .places li.place .links:has(> :nth-child(3)) { gap: 4px; }
+.places li.place:has(.links > :nth-child(3)) .pl-dist { line-height: 1.15; }

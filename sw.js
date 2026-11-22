@@ -1,5 +1,5 @@
 // 앱 셸만 캐시(오프라인 첫 화면). API 응답은 캐시하지 않는다(날씨는 항상 최신 조회).
-const CACHE = 'tailtrail-shell-v15';
+const CACHE = 'tailtrail-shell-v16';
 // 캐리커처 10장(합계 약 130KB)은 처음 설치할 때 함께 받아 둔다(오프라인에서도 아이 그림이 보이게)
 const CARICATURES = ['maltese-1', 'maltese-2', 'maltese-3', 'maltese-4', 'maltese-5', 'poodle', 'pomeranian', 'corgi', 'bichon', 'retriever'].map(n => `./assets/caricatures/${n}.webp`);
 const SHELL = ['./', './manifest.webmanifest', './assets/icon.svg', ...CARICATURES];
