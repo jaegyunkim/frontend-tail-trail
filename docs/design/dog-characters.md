@@ -1,5 +1,11 @@
 # 꼬리길 강아지 캐릭터 가이드 (캔바 제작용)
 
+> **2026-11-22 갱신 (디자인 시스템 v1.0)**: 화면은 이제 `assets/caricatures/*.webp`(견종 유화 캐리커처 10장, 256px WebP, 합계 약 130KB)를 씁니다.
+> 저장 id 형식 `{종류}-{1~5}`는 그대로이고(백엔드 `cleanAvatar`가 이 형식만 받음), `app.js` 의 `AVATAR_SET` 표가 id → 그림을 정합니다.
+> 그래서 예전에 저장된 아이도 데이터 변경 없이 새 그림으로 보여요. `assets/dogs/` SVG 는 더 이상 화면에서 쓰지 않지만 남겨 둡니다.
+> 원본: `~/dev/dog-walking/design/assets/` (변환: `cwebp -q 78 -resize 256 256 -m 6`).
+
+
 지금 `assets/dogs/` 의 SVG 25장은 **임시 디자인**(`node scripts/gen-dog-avatars.mjs` 로 생성)이에요.
 캔바에서 정식 캐릭터를 만들면 **같은 파일 이름으로 바꿔 끼우기만** 하면 앱 코드는 고칠 필요가 없어요.
 

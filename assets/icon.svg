@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="꼬리길">
-  <rect width="64" height="64" rx="14" fill="#2F6B4F"/>
-  <g fill="#F7F5EF">
+  <rect width="64" height="64" rx="14" fill="#10B981"/>
+  <g fill="#FFFFFF">
     <ellipse cx="32" cy="41" rx="11" ry="9.5"/>
     <ellipse cx="18.5" cy="30" rx="4.6" ry="6" transform="rotate(-18 18.5 30)"/>
     <ellipse cx="27" cy="21.5" rx="4.6" ry="6.2" transform="rotate(-6 27 21.5)"/>

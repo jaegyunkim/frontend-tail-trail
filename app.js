@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-3';
+import { mountShelter } from './shelter.js?v=0.1.6-4';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -44,12 +44,24 @@ const SIZE_EX = { small: '예: 치와와·말티즈·푸들·포메라니안·�
 const AGE_HINT = { puppy: '1살 미만. 예방접종 중이면 짧게, 사람 많은 곳은 피해요', adult: '1~7살. 가장 활동적인 시기예요', senior: '7살 이상(대형견은 5~6살부터). 천천히 평평한 길로 걸어요' };
 const sizeLabel = id => dogOptions.sizes.find(s => s.id === id)?.label ?? id, ageLabel = id => dogOptions.ages.find(a => a.id === id)?.label ?? id;
 const dogSub = d => [sizeLabel(d.size), ageLabel(d.age), d.flatFace ? '단두종' : '', d.thickCoat ? '두꺼운 털' : ''].filter(Boolean).join(' · ');
-// 캐릭터: 종류(크기·단두종·털로 정해짐) 5개 × 모양 5개. 파일은 assets/dogs/{종류}-{1~5}.svg (정식 캐릭터가 나오면 같은 이름으로 바꿔 끼운다)
-const KIND_LABEL = { small: '소형견', medium: '중형견', large: '대형견', flat: '단두종', coat: '두꺼운 털' }, VARIANT_NAME = ['몽글', '초코', '점박', '별이', '구름'], TONES = ['#E3F0E6', '#FBEFD5', '#E4ECF7', '#F6E3E0', '#EDE6F5'];
+// 캐릭터: 종류(크기·단두종·털로 정해짐) 5개 × 모양 5개 = 저장 id `{종류}-{1~5}`(백엔드가 이 형식만 받는다).
+// 그림은 견종 유화 캐리커처(assets/caricatures/*.webp). 예전 평면 아이콘 id(small-2 등)도 그대로 아래 표로 새 그림이 된다.
+const KIND_LABEL = { small: '소형견', medium: '중형견', large: '대형견', flat: '단두종', coat: '두꺼운 털' };
+const CARICATURE = { 'maltese-1': '말티즈', 'maltese-2': '말티 달리기', 'maltese-3': '말티 갸우뚱', 'maltese-4': '말티 윙크', 'maltese-5': '말티 리본', poodle: '푸들', pomeranian: '포메', corgi: '코기', bichon: '비숑', retriever: '리트리버' };
+const AVATAR_SET = {
+  small: ['maltese-1', 'poodle', 'pomeranian', 'bichon', 'maltese-5'],
+  medium: ['corgi', 'poodle', 'bichon', 'maltese-2', 'retriever'],
+  large: ['retriever', 'corgi', 'poodle', 'bichon', 'maltese-3'],
+  flat: ['maltese-4', 'bichon', 'pomeranian', 'poodle', 'maltese-1'],
+  coat: ['pomeranian', 'retriever', 'bichon', 'corgi', 'maltese-2']
+};
+const DEFAULT_CARICATURE = 'retriever'; // 모르는 값은 대표 마스코트
+const caricatureOf = id => { const m = /^(small|medium|large|flat|coat)-([1-5])$/.exec(String(id ?? '')); return m ? AVATAR_SET[m[1]][Number(m[2]) - 1] : DEFAULT_CARICATURE; };
+const caricatureSrc = name => `assets/caricatures/${CARICATURE[name] ? name : DEFAULT_CARICATURE}.webp`;
 const kindOf = d => d?.flatFace ? 'flat' : d?.thickCoat ? 'coat' : (['small', 'medium', 'large'].includes(d?.size) ? d.size : 'medium');
 const avatarId = d => /^(small|medium|large|flat|coat)-[1-5]$/.test(d?.avatar ?? '') ? d.avatar : `${kindOf(d)}-${((Number(d?.id) || 0) % 5) + 1}`;
 const AGE_BADGE = { puppy: '아기', senior: '노령' };
-const avatar = (d, cls = '') => { const id = avatarId(d), n = Number(id.slice(-1)); return `<span class="dog-ava ${cls}" style="background:${TONES[n - 1]}" aria-hidden="true"><img src="assets/dogs/${id}.svg" alt="" width="64" height="64" loading="lazy">${AGE_BADGE[d?.age] ? `<i class="ava-badge">${AGE_BADGE[d.age]}</i>` : ''}</span>`; };
+const avatar = (d, cls = '') => `<span class="dog-ava ${cls}" aria-hidden="true"><img src="${caricatureSrc(caricatureOf(avatarId(d)))}" alt="" width="96" height="96" loading="lazy" decoding="async">${AGE_BADGE[d?.age] ? `<i class="ava-badge">${AGE_BADGE[d.age]}</i>` : ''}</span>`;
 const dogFull = () => dogs.length >= dogOptions.maxDogs;
 const curDog = () => dogs.find(d => d.id === sel.dogId) ?? dogs.find(d => d.selected) ?? dogs[0] ?? null;
 
@@ -63,7 +75,7 @@ function drawDogChips() {
   }
   const cur = curDog(); sel.dogId = cur.id;
   el.innerHTML = `<div class="dog-pick" role="radiogroup" aria-label="오늘 산책할 아이">${dogs.map(d => `<button type="button" class="dog-pick-card" role="radio" aria-checked="${d.id === cur.id}" data-id="${d.id}">${avatar(d)}<b>${esc(d.name)}</b><small>${esc(dogSub(d))}</small></button>`).join('')}${dogFull() ? '' : '<button type="button" class="dog-pick-card add" data-add aria-label="아이 추가 등록"><span class="dog-ava" aria-hidden="true">＋</span><b>추가</b><small>새 아이 등록</small></button>'}</div>
-    <p class="dog-care">🐾 <b>${esc(cur.name)}</b> · ${esc(cur.care?.summary ?? '')}</p><button type="button" class="origin-link" data-go="dogs">✏️ 아이 정보 수정·삭제</button>`;
+    <div class="agent-say mini">${avatar(cur, 'agent sm')}<div class="say-bubble"><b>${esc(cur.name)}</b><p>${esc(cur.care?.summary || '오늘 같이 걸을 준비 됐어요!')}</p></div></div><button type="button" class="origin-link" data-go="dogs">✏️ 아이 정보 수정·삭제</button>`;
   el.querySelectorAll('.dog-pick-card[data-id]').forEach(b => b.onclick = () => { sel.dogId = Number(b.dataset.id); drawDogChips(); });
   const add = el.querySelector('[data-add]'); if (add) add.onclick = () => { go('dogs'); openDogForm(); };
 }
@@ -113,7 +125,7 @@ function drawDogDraftChips() {
 function drawAvatarPicker() {
   const kind = kindOf(draftBody()), box = $('#dogAvatar'), v = dogDraft.variant;
   $('#dogAvatarKind').textContent = `${KIND_LABEL[kind]} 캐릭터`;
-  box.innerHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" class="ava-opt${n === v ? ' on' : ''}" role="radio" aria-checked="${n === v}" data-n="${n}" aria-label="${VARIANT_NAME[n - 1]}"><span class="ava-img" style="background:${TONES[n - 1]}"><img src="assets/dogs/${kind}-${n}.svg" alt="" width="56" height="56"></span><small>${VARIANT_NAME[n - 1]}</small></button>`).join('');
+  box.innerHTML = AVATAR_SET[kind].map((name, i) => { const n = i + 1; return `<button type="button" class="ava-opt${n === v ? ' on' : ''}" role="radio" aria-checked="${n === v}" data-n="${n}" aria-label="${CARICATURE[name]}"><span class="ava-img"><img src="${caricatureSrc(name)}" alt="" width="64" height="64" decoding="async"></span><small>${CARICATURE[name]}</small></button>`; }).join('');
   box.querySelectorAll('.ava-opt').forEach(b => b.onclick = () => { dogDraft.variant = Number(b.dataset.n); drawAvatarPicker(); scheduleDogLive(); });
 }
 function updateDogHints() { drawAvatarPicker(); $('#dogSizeHint').textContent = SIZE_EX[dogDraft.size] ?? ''; $('#dogAgeHint').textContent = AGE_HINT[dogDraft.age] ?? ''; scheduleDogLive(); }
@@ -254,6 +266,15 @@ function courseHtml(c, i) {
     <div class="links">${Number.isFinite(c.start?.lat) ? mapLinks(c.name + ' 시작점', c.start.lat, c.start.lon) : ''}<a class="link-btn" href="https://www.durunubi.kr/" target="_blank" rel="noopener">두루누비<b aria-hidden="true">↗</b></a><a class="link-btn" href="#" data-diary="${i}"><span aria-hidden="true">✍️</span>다녀왔어요</a></div></div>`;
 }
 
+/** 산책 신호등 이름(초록·노랑·빨강) */
+const SIGNAL_LABEL = { go: '산책 딱 좋아요', caution: '시간·발바닥 주의', indoor: '실내 놀이 추천' };
+const AGENT_OPEN = { go: '같이 나가요!', time: '시간만 잘 고르면 돼요!', short: '짧게 다녀와요!', indoor: '오늘은 집에서 놀아요.' };
+/** 에이전트 말풍선: 아이 캐리커처가 1인칭으로 오늘 판단을 짧게 전한다 */
+function agentSay(w, p) {
+  const who = dogs.find(d => d.name === w.dog?.name) ?? curDog() ?? w.dog ?? {};
+  const line = p.card?.[0] || w.reasons?.[0] || w.headline || '';
+  return `<section class="agent-say" aria-label="${esc(who.name ?? '우리 아이')}의 한마디">${avatar(who, 'agent')}<div class="say-bubble"><b>${esc(who.name ?? '우리 아이')}</b><p>${esc(AGENT_OPEN[w.gate] ?? '')} ${esc(line)}</p></div></section>`;
+}
 function renderPlan({ id, plan: p }) {
   const w = p.walk, s = p.weather.short, gc = GC[w.gate] ?? 'caution';
   const hours = s?.hourly?.filter(h => h.hour % 2 === 0 || (h.precip && h.precip !== '없음')).slice(0, 9) ?? [];
@@ -261,8 +282,10 @@ function renderPlan({ id, plan: p }) {
   const courses = p.courses ?? [], vets = p.nearby.vets ?? [];
   $('#planResult').innerHTML = `
     <p id="planQuotaTag" class="token-tag" hidden></p>
-    <section class="dog-hero ${gc}" aria-label="오늘의 판단"><div class="dh-top"><span class="dh-dog">🐕 ${esc(w.dog.name)} · ${esc(dogSub(w.dog))}</span><span class="tag ${gc}">${esc(w.gateName)}</span></div>
-      <h2>${esc(w.headline)}</h2><p class="dh-sub">${esc(p.dateLabel)} · ${esc(p.place)}${w.minutes ? ` · 알맞은 산책 ${w.minutes}분` : ''}</p></section>
+    <section class="dog-hero ${gc}" aria-label="오늘의 판단"><div class="dh-top"><span class="sig-light" aria-hidden="true"><i class="r"></i><i class="y"></i><i class="g"></i></span><span class="tag ${gc}">${esc(SIGNAL_LABEL[gc] ?? w.gateName)}</span></div>
+      <h2>${esc(w.headline)}</h2><p class="dh-sub">${esc(p.dateLabel)} · ${esc(p.place)}${w.minutes ? ` · 알맞은 산책 ${w.minutes}분` : ''}</p>
+      <p class="dh-dog">🐕 ${esc(w.dog.name)} · ${esc(dogSub(w.dog))} · ${esc(w.gateName)}</p></section>
+    ${agentSay(w, p)}
     <div class="metric-strip">
       <div class="metric"><div class="metric-num ${gc}">${w.score}</div><div class="metric-label">${w.gate === 'time' ? '추천 시간 점수' : '산책 점수'}</div></div>
       <div class="metric"><div class="metric-num">${s?.temp ? `${s.temp.min}~${s.temp.max}°` : p.weather.mid?.temp?.min != null ? `${p.weather.mid.temp.min}~${p.weather.mid.temp.max}°` : '-'}</div><div class="metric-label">${esc(p.dateLabel.slice(5))} 기온</div></div>
@@ -584,6 +607,16 @@ function applyAiLock(ai) {
   $('#aiLock').hidden = !aiLocked; if (aiLocked) { $('#aiLockMsg').textContent = ai.message || '지금은 AI 이용량이 모두 소진되어 잠시 이용할 수 없어요.'; hideTip(); }
   $("#btnPlan").disabled = !!aiLocked || quotaLocked || planning;
 }
+/** 화면 모드: 자동(기기 설정) · 밝게 · 어둡게. 이 기기에만 기억한다 */
+function applyTheme(mode) {
+  const m = mode === 'light' || mode === 'dark' ? mode : 'auto';
+  const html = document.documentElement;
+  if (html?.dataset) { if (m === 'auto') delete html.dataset.theme; else html.dataset.theme = m; }
+  try { if (m === 'auto') localStorage.removeItem('tailtrail.theme'); else localStorage.setItem('tailtrail.theme', m); } catch { /* 저장 못 해도 지금 화면에는 적용 */ }
+  document.querySelectorAll('[data-theme-set]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeSet === m)));
+}
+document.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => applyTheme(b.dataset.themeSet));
+applyTheme((() => { try { return localStorage.getItem('tailtrail.theme'); } catch { return null; } })());
 async function openSettings() {
   await refreshUsage();
   const a = state.auth; if (!a) return;

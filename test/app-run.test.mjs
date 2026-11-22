@@ -47,7 +47,7 @@ function makeContext(apiImpl) {
   return vm.createContext(ctx);
 }
 const FOOTER = `
-globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName,
+globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName, caricatureOf, caricatureSrc, AVATAR_SET, agentSay, applyTheme,
   setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel };`;
 const load = apiImpl => { const ctx = makeContext(apiImpl); vm.runInContext(SRC.replace(/^import .*$/gm, '') + FOOTER, ctx, { filename: 'app.js' }); return ctx.__app; };
 
@@ -110,4 +110,28 @@ test('꼬리일기 시간: 시간·분 고르기를 분으로 환산(기본 30�
   assert.match(src, /minutes: diaryMinutes\(\) \|\| null/);
   assert.ok(h.indexOf('id="diaryMood"') < h.indexOf('id="diaryPoop"'));
   assert.match(h, /class="row diary-trio">.*id="diaryDog".*id="diaryDate".*id="diaryHours"/);
+});
+
+test('캐리커처: 저장된 예전 아이콘 id(종류-번호 25개)가 모두 실제 그림 파일로 바뀌고, 모르는 값은 리트리버', () => {
+  const app = load(async () => OPTIONS);
+  for (const k of ['small', 'medium', 'large', 'flat', 'coat']) for (let n = 1; n <= 5; n++) {
+    const src = app.caricatureSrc(app.caricatureOf(`${k}-${n}`));
+    assert.match(src, /^assets\/caricatures\/[a-z0-9-]+\.webp$/); // 상대 경로(GitHub Pages 하위 경로에서도 동작)
+    assert.ok(fs.existsSync(new URL('../' + src, import.meta.url)), src);
+  }
+  assert.equal(app.caricatureOf('엉뚱한값'), 'retriever'); assert.equal(app.caricatureOf(null), 'retriever');
+  assert.equal(new Set(Object.values(app.AVATAR_SET).flat()).size, 10);
+});
+test('서비스워커가 미리 받아 두는 캐리커처 파일이 모두 있다', () => {
+  const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+  const names = [...sw.match(/const CARICATURES = \[([^\]]+)\]/)[1].matchAll(/'([a-z0-9-]+)'/g)].map(m => m[1]);
+  assert.equal(names.length, 10);
+  for (const n of names) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${n}.webp`, import.meta.url)), n);
+});
+test('에이전트 말풍선·신호등·화면 모드', () => {
+  const app = load(async () => OPTIONS); app.setDogs(DOGS);
+  const html = app.agentSay(PLAN.walk, PLAN);
+  assert.match(html, /class="agent-say"/); assert.match(html, /assets\/caricatures\//); assert.match(html, /앤비/);
+  assert.doesNotThrow(() => { app.applyTheme('dark'); app.applyTheme('auto'); });
+  assert.doesNotThrow(() => app.renderPlan({ id: 'x', plan: { ...PLAN, walk: { ...PLAN.walk, gate: 'indoor' } } }));
 });
