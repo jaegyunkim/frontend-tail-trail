@@ -41,6 +41,7 @@ let llmState = null;
 async function renderLlm() {
   const box = $('#llmCard'); if (!box) return;
   const { config, status } = await api('/v1/admin/llm'); llmState = config;
+  if (!box.isConnected) return; // 응답 전에 다른 메뉴로 옮겼으면 그리지 않는다(사라진 카드·폼을 건드리지 않게)
   const cur = config.active ? config.providers[config.active] : null;
   box.innerHTML = '<h2>AI 연결</h2>'
     + '<p>현재 사용 중: ' + (cur ? '<b>' + esc(cur.label) + '</b> · ' + esc(cur.model || '모델 미지정') : '<span class="pill bad">미설정</span>') + '</p>'
@@ -60,11 +61,12 @@ async function renderLlm() {
   const f = $('#llmForm'), sel = f.provider, ep = f.endpoint, key = f.apiKey, model = f.model, note = $('#llmModelNote');
   const fillModels = (list, keep) => { model.innerHTML = list.map(m => '<option' + (m === keep ? ' selected' : '') + '>' + esc(m) + '</option>').join(''); if (keep && !list.includes(keep)) model.insertAdjacentHTML('afterbegin', '<option selected>' + esc(keep) + '</option>'); };
   const load = async () => {
-    note.textContent = '모델 목록을 불러오는 중…'; $('#llmLoad').disabled = true;
+    const btn = $('#llmLoad'); note.textContent = '모델 목록을 불러오는 중…'; btn.disabled = true;
     try { const r = await api('/v1/admin/llm/models', { method: 'POST', body: JSON.stringify({ provider: sel.value, endpoint: ep.value, apiKey: key.value || undefined }) });
+      if (!f.isConnected) return; // 불러오는 동안 다른 메뉴로 옮김
       fillModels(r.models, model.value || config.providers[sel.value].model);
       note.textContent = (r.source === 'live' ? '키로 조회한 실시간 목록' : 'MonoRouter 화면 기준 목록') + ' · 대화용 ' + r.models.length + '개' + (r.note ? ' · ' + r.note : '');
-    } catch (e) { note.textContent = errText(e); } finally { $('#llmLoad').disabled = false; }
+    } catch (e) { if (f.isConnected) note.textContent = errText(e); } finally { if (btn.isConnected) btn.disabled = false; }
   };
   const pick = () => {
     const p = config.providers[sel.value]; ep.value = p.endpoint; key.value = '';

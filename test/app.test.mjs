@@ -106,3 +106,15 @@ test('관리자 화면: 디자인 토큰·다크모드, 좁은 화면 터치 44p
   assert.match(c, /\.acts button, \.tool button, \.mini-btn, \.ghost-btn, \.vz-tabs button, \.vz-seg button, \.settings button, \.card form button, \.rep-item \{ min-height: 44px; \}/);
   assert.match(c, /\.tbl td, \.kv, \.rep-kv, \.chatlog \.m,[^{]*\{ font-size: 15px; \}/);
 });
+
+test('#37 관리자 AI 연결: 응답 전에 다른 메뉴로 옮겨도 사라진 카드·폼·버튼을 건드리지 않는다', () => {
+  const a = read('admin.js');
+  assert.match(a, /if \(!box\.isConnected\) return;/); assert.match(a, /if \(!f\.isConnected\) return;/); assert.match(a, /finally \{ if \(btn\.isConnected\) btn\.disabled = false; \}/);
+  assert.doesNotMatch(a, /finally \{ \$\('#llmLoad'\)\.disabled = false; \}/);
+});
+test('#37 키보드: 대화상자 포커스 복원·Tab 가두기, 라디오 그룹 방향키·로빙 tabindex, 하단 메뉴 aria-current, 날짜·크기·나이 그룹 이름', () => {
+  const s = read('app.js'), h = read('index.html');
+  for (const re of [/HTMLDialogElement\.prototype\.showModal = function/, /addEventListener\('close'/, /ArrowRight/, /r\.tabIndex = r === on \? 0 : -1/, /setAttribute\('aria-current', 'page'\)/, /dialog\[open\]'\)\]\.at\(-1\)/]) assert.match(s, re);
+  for (const l of ['날짜', '크기', '나이']) assert.match(h, new RegExp(`role="radiogroup" aria-label="${l}"`));
+  assert.match(h, /data-tab="plan" class="active" type="button" aria-current="page"/);
+});

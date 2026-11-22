@@ -48,7 +48,7 @@ function makeContext(apiImpl) {
 }
 const FOOTER = `
 globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName, characterCandidates, characterFor, comboLabel, caricatureSrc, BREEDS, drawAvatarPicker, setDraft: d => { dogDraft = d; }, getDraft: () => dogDraft, agentSay, applyTheme,
-  setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel, isArtId, artEntry, pickerCands, saveAvatar, draftBody, setOptions: o => { dogOptions = o; }, LEGACY_BREEDS };`;
+  setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel, isArtId, artEntry, pickerCands, saveAvatar, draftBody, setOptions: o => { dogOptions = o; }, LEGACY_BREEDS, tcDist, AGE_HINT };`;
 const load = apiImpl => { const ctx = makeContext(apiImpl); vm.runInContext(SRC.replace(/^import .*$/gm, '') + FOOTER, ctx, { filename: 'app.js' }); return ctx.__app; };
 
 const DOGS = [{ id: 1, name: '앤비', size: 'small', age: 'adult', flatFace: false, thickCoat: true, selected: true, care: { summary: '알맞은 산책 약 30분 · 28℃ 넘으면 조심', maxC: 28, minutes: 30, traits: [{ icon: '🧊', key: 'small', note: '소형견은 …' }] } },
@@ -342,4 +342,13 @@ test('#34 최종 3장: 프렌치불독 노령·차우차우 성견/아기 연결
   assert.equal(app.caricatureSrc('chow-chow-senior'), 'assets/caricatures/chow-chow-senior.webp?v=2');
   assert.equal(app.caricatureSrc('chow-chow'), 'assets/caricatures/chow-chow.webp');
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8'); assert.match(sw, /cache: 'reload'/, '서비스워커 미리 받기는 HTTP 캐시를 건너뜀');
+});
+
+test('#37 결측 거리·나이 안내: 거리 모르면 표시 안 함, "바로 앞"은 0.25km 이하만, 성견/노령견 표기가 겹치지 않음', () => {
+  const app = load(async () => OPTIONS);
+  for (const k of [null, undefined, '', NaN, 'x']) assert.equal(app.tcDist(k), null, String(k));
+  assert.equal(app.tcDist(0), '바로 앞'); assert.equal(app.tcDist(0.25), '바로 앞'); assert.equal(app.tcDist(0.4), '400m'); assert.equal(app.tcDist(1.24), '1.2km');
+  assert.match(app.AGE_HINT.adult, /^1~6살/); assert.match(app.AGE_HINT.senior, /^7살부터/);
+  const src = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8') + fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /월령|1~7살|7살 이상/);
 });

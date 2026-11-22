@@ -87,3 +87,12 @@ test('오류면 다시 추천받기 버튼, 늦게 온 응답은 버린다', asy
   assert.match(a.el().innerHTML, /NEW/); assert.doesNotMatch(a.el().innerHTML, /OLD/);
   await a.loadRecommend('k3'); assert.match(a.el().innerHTML, /다시 추천받기/); assert.equal(a.rec.key, null, '실패하면 같은 조건으로 다시 부를 수 있게 비운다');
 });
+
+test('#37 결측값: 강수확률이 없으면 0%로 바꾸지 않고, 거리가 없으면 "바로 앞"이라 하지 않는다', () => {
+  const a = load(async () => ({}));
+  a.setDogs([{ id: 1, name: '앤비', size: 'small', age: 'senior', flatFace: true, avatar: 'flat-1' }]);
+  const r = { ...REC, weather: { ...REC.weather, now: { temp: 3, feelsLike: 2, pavement: 27, precip: '없음', pop: null } }, items: REC.items.map(it => ({ ...it, distanceKm: null })) };
+  a.renderTodayCourse(r); const h = a.el().innerHTML;
+  assert.doesNotMatch(h, /강수 0%|강수 null/); assert.doesNotMatch(h, /바로 앞/); assert.match(h, /노면 27°/);
+  a.renderTodayCourse({ ...REC, weather: { ...REC.weather, now: { ...REC.weather.now, pop: 0 } } }); assert.match(a.el().innerHTML, /강수 0%/, '실제 0%는 그대로 보인다');
+});

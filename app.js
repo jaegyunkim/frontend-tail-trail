@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-22';
+import { mountShelter } from './shelter.js?v=0.1.6-23';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -43,7 +43,8 @@ const dateValue = () => ({ today: kstDate(0), tomorrow: kstDate(1), after: kstDa
 // ---------- 우리 아이(최대 5마리: 처음 등록·추가 등록·수정·삭제·기본 아이) ----------
 // 오늘 탭에는 '아이 고르기 카드', 우리 아이 탭에는 '아이 카드 목록'(맞춤 기준·주의점·수정/삭제), 등록·수정은 아래에서 올라오는 시트(dialog)로 한다.
 const SIZE_EX = { small: '예: 치와와·말티즈·푸들·포메라니안·요크셔테리어', medium: '예: 시바·비글·웰시코기·보더콜리·스패니얼', large: '예: 골든·래브라도 리트리버·진돗개·셰퍼드·허스키' };
-const AGE_HINT = { puppy: '1살 미만. 예방접종 중이면 짧게, 사람 많은 곳은 피해요', adult: '1~7살. 가장 활동적인 시기예요', senior: '7살 이상(대형견은 5~6살부터). 천천히 평평한 길로 걸어요' };
+// 나이 안내(#37): 서버는 범주(puppy·adult·senior)만 받는다. 표기만 겹치지 않게(성견 1~6살, 노령견 7살부터)
+const AGE_HINT = { puppy: '1살 미만. 예방접종 중이면 짧게, 사람 많은 곳은 피해요', adult: '1~6살. 가장 활동적인 시기예요', senior: '7살부터(대형견은 5~6살부터). 천천히 평평한 길로 걸어요' };
 const sizeLabel = id => dogOptions.sizes.find(s => s.id === id)?.label ?? id, ageLabel = id => dogOptions.ages.find(a => a.id === id)?.label ?? id;
 const dogSub = d => [sizeLabel(d.size), ageLabel(d.age), d.flatFace ? '단두종' : '', d.thickCoat ? '두꺼운 털' : ''].filter(Boolean).join(' · ');
 // ===== 캐릭터 매칭(#23) =====
@@ -337,7 +338,8 @@ async function loadRecommend(key = recKey()) {
   } finally { if (seq === rec.seq) { rec.loading = false; el.classList.remove('is-updating'); } }
 }
 const recSkeleton = () => `<div class="tc-card is-loading" aria-busy="true" aria-label="오늘의 맞춤 산책 코스를 고르는 중"><p class="tc-eyebrow">오늘의 맞춤 산책 코스</p><div class="tc-skel w60"></div><div class="tc-skel w90"></div><div class="tc-skel w80"></div><p class="tc-loading-txt">아이와 지금 날씨에 맞는 길을 고르는 중…</p></div>`;
-const tcDist = k => k == null || k <= 0.25 ? '바로 앞' : k < 1 ? Math.round(k * 1000) + 'm' : (Math.round(k * 10) / 10) + 'km';
+// 거리(#37): 모르면(null) 표시하지 않는다. '바로 앞'은 실제 0.25km 이하일 때만
+const tcDist = k => k == null || k === '' || !Number.isFinite(+k) ? null : +k <= 0.25 ? '바로 앞' : +k < 1 ? Math.round(+k * 1000) + 'm' : (Math.round(+k * 10) / 10) + 'km';
 const TC_KIND = { diary: '🐾', home: '🏡', place: '📍', park: '🌳' };
 function tcLinks(it) {
   if (!Number.isFinite(+it.lat) || !Number.isFinite(+it.lon)) return '';
@@ -352,14 +354,15 @@ function renderTodayCourse(r) {
     el.innerHTML = `<div class="tc-card"><div class="tc-head">${avatar(d, 'sm')}<div class="tc-title"><p class="tc-eyebrow">오늘의 맞춤 산책 코스</p><h3>출발지를 고르면 바로 골라 드려요</h3></div></div>${nudge}</div>`;
   } else {
     const w = r.walk, n = r.weather?.now, gc = GC[w.gate] ?? 'caution', air = r.weather?.air;
-    const wx = [n?.temp != null ? `<span>🌡️ ${n.temp}° <small>체감 ${n.feelsLike}°</small></span>` : '', n?.pavement != null ? `<span class="${n.pavement >= (w.pavementWarnC ?? 45) ? 'hot' : ''}">🐾 노면 ${n.pavement}° <small>추정</small></span>` : '', air ? `<span class="${air.grade >= 3 ? 'hot' : ''}">😷 ${esc(air.gradeName)}</span>` : '', n ? `<span>${n.precip && n.precip !== '없음' ? '☔ ' + esc(n.precip) : '💧 강수 ' + (n.pop ?? 0) + '%'}</span>` : ''].filter(Boolean).join('');
+    // 노면 칩 강조(hot)는 서버가 준 아이 기준(pavementWarnC)을 쓴다. 45는 옛 서버 대비 표시용 대체값일 뿐 판정 기준이 아니다(값은 늘 '추정' 표기). 강수확률이 없으면 0%로 바꾸지 않고 칩을 뺀다
+    const wx = [n?.temp != null ? `<span>🌡️ ${n.temp}° <small>체감 ${n.feelsLike}°</small></span>` : '', n?.pavement != null ? `<span class="${n.pavement >= (w.pavementWarnC ?? 45) ? 'hot' : ''}">🐾 노면 ${n.pavement}° <small>추정</small></span>` : '', air ? `<span class="${air.grade >= 3 ? 'hot' : ''}">😷 ${esc(air.gradeName)}</span>` : '', n && ((n.precip && n.precip !== '없음') || n.pop != null) ? `<span>${n.precip && n.precip !== '없음' ? '☔ ' + esc(n.precip) : '💧 강수 ' + esc(n.pop) + '%'}</span>` : ''].filter(Boolean).join('');
     el.innerHTML = `<div class="tc-card ${gc}">
       <div class="tc-head">${avatar(d, 'sm')}<div class="tc-title"><p class="tc-eyebrow">오늘의 맞춤 산책 코스</p><h3>${esc(d.name ?? '우리 아이')}${josaWa(d.name ?? '우리 아이')} ${esc(r.items[0].when)}</h3><small>${esc(r.origin?.label ?? '')} · ${esc(r.basisLabel)}</small></div><span class="tag ${gc}">${esc(w.gateName)}</span></div>
       ${wx ? `<div class="tc-wx" aria-label="출발지 지금 날씨">${wx}</div>` : ''}
       ${r.items[0].reasons?.[0] ? `<p class="tc-say">${esc(r.items[0].reasons[0])}</p>` : ''}
       <ol class="tc-list">${r.items.map(it => `<li class="tc-item split"><span class="tc-rank" aria-hidden="true">${TC_KIND[it.kind] ?? it.rank}</span><div class="tc-body split-main">
         <div class="tc-name"><b>${esc(it.name)}</b><small class="tc-src">${esc(it.source)}</small></div>
-        <p class="tc-meta"><span>⏱ ${it.minutes}분</span><span>📏 ${it.routeKm}km</span><span>📍 ${tcDist(it.distanceKm)}</span>${it.mode === 'ride' ? '<span>🚗 차로 이동</span>' : ''}</p>
+        <p class="tc-meta"><span>⏱ ${it.minutes}분</span><span>📏 ${it.routeKm}km</span>${tcDist(it.distanceKm) ? `<span>📍 ${tcDist(it.distanceKm)}</span>` : ''}${it.mode === 'ride' ? '<span>🚗 차로 이동</span>' : ''}</p>
         ${it.reasons[0] && it.reasons[0] !== r.items[0].reasons[0] ? `<p class="tc-why">${esc(it.reasons[0])}</p>` : ''}${it.reasons[1] ? `<p class="tc-why sub">${esc(it.reasons[1])}</p>` : ''}
         </div><div class="split-side"><div class="links">${tcLinks(it)}<a class="link-btn" href="#" data-rec-diary-item="${it.rank}"><span aria-hidden="true">✍️</span>다녀왔어요</a></div></div></li>`).join('')}</ol>
       ${nudge}
@@ -430,6 +433,7 @@ function hourBars(hourly, window) {
   if (!hourly?.length) return '';
   const LV = { ok: '좋음', warn: '주의', bad: '위험' };
   return `<section class="hour-bars" aria-label="시간대별 산책 판단"><h3>시간대별 판단 <small>${window ? `추천 ${esc(window.from)}~${esc(window.to)}` : '시간대 추천 없음'}</small></h3>
+    <!-- 40° 이상일 때만 노면 추정 숫자를 보이는 것은 표시 조건일 뿐 위험 판정선이 아니다(판정·색은 서버 level) -->
     <div class="hb-row" style="--n:${hourly.length}">${hourly.map(h => `<div class="hb lv-${esc(h.level)}" title="${esc(h.time)} ${esc(LV[h.level])} ${esc(h.reasons.join(', '))}"><span class="hb-t">${h.hour}</span><i></i><b>${h.temp ?? '-'}°</b>${h.pavement != null && h.pavement >= 40 ? `<em>${h.pavement}°</em>` : '<em></em>'}</div>`).join('')}</div>
     <p class="muted small-text">아래 작은 숫자는 노면 온도 추정값이에요(기온·하늘 상태로 계산, 실측 아님). 색: <span class="lg ok">좋음</span> <span class="lg warn">주의</span> <span class="lg bad">위험</span></p></section>`;
 }
@@ -467,6 +471,7 @@ function renderPlan({ id, plan: p }) {
       <div class="metric"><div class="metric-num ${pave != null && pave >= w.pavement.warnC ? 'indoor' : ''}">${pave != null ? pave + '°' : '-'}</div><div class="metric-label">노면 최고(추정)</div></div>
     </div>
     <p class="air-line">${p.weather.air ? `😷 미세먼지 ${esc(p.weather.air.gradeName)} (PM10 ${p.weather.air.pm10 ?? '-'} · PM2.5 ${p.weather.air.pm25 ?? '-'})` : s?.popMax != null ? `☔ 강수확률 최대 ${s.popMax}%` : ''}</p>
+    <p class="safety-note">노면 온도는 날씨로 계산한 추정값이에요. 손등으로 바닥을 만져 보고, 아이가 힘들어하면 바로 멈춰 주세요. 수의사 안내가 먼저예요.</p>
     <details class="share-card"><summary>공유용 3줄 요약</summary><div class="card-lines">${p.card.map(l => `<p>${esc(l)}</p>`).join('')}</div></details>
     ${hourBars(w.hourly, w.window)}
     ${weatherCard(w, hours)}
@@ -572,10 +577,63 @@ $('#diaryForm').onsubmit = async e => {
   } catch (err) { toast(errText(err)); }
 };
 
+// ---------- 키보드 접근(#37) ----------
+// 1) 라디오 그룹(날짜·크기·나이·캐릭터·아이·출발지 등): Tab 으로 그룹에 한 번 들어가고(로빙 tabindex), 방향키·Home·End 로 이동하며 고른다.
+//    출발지는 고르면 바로 다시 조회(현재 위치는 위치 권한 요청)하므로 방향키는 포커스만 옮기고 Space·Enter 로 고른다.
+const groupRadios = g => [...g.querySelectorAll('[role="radio"]')].filter(r => r.closest('[role="radiogroup"]') === g);
+function rove(g, focused = null) {
+  const rs = groupRadios(g).filter(r => !r.disabled); if (!rs.length) return;
+  const on = focused ?? rs.find(r => r.getAttribute('aria-checked') === 'true') ?? rs[0];
+  for (const r of groupRadios(g)) r.tabIndex = r === on ? 0 : -1;
+}
+let roveQueued = false;
+const roveAll = () => { roveQueued = false; document.querySelectorAll('[role="radiogroup"]').forEach(g => { if (!g.contains(document.activeElement)) rove(g); }); };
+if (typeof MutationObserver !== 'undefined') new MutationObserver(() => { if (!roveQueued) { roveQueued = true; queueMicrotask(roveAll); } }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-checked'] });
+document.addEventListener('focusin', e => { const r = e.target.closest?.('[role="radio"]'), g = r?.closest('[role="radiogroup"]'); if (g) rove(g, r); });
+document.addEventListener('keydown', e => {
+  const r = e.target.closest?.('[role="radio"]'), g = r?.closest('[role="radiogroup"]'); if (!g || e.altKey || e.ctrlKey || e.metaKey) return;
+  const rs = groupRadios(g).filter(x => !x.disabled && x.getClientRects().length), i = rs.indexOf(r); if (i < 0) return;
+  const k = e.key, next = k === 'ArrowRight' || k === 'ArrowDown' ? rs[(i + 1) % rs.length] : k === 'ArrowLeft' || k === 'ArrowUp' ? rs[(i - 1 + rs.length) % rs.length] : k === 'Home' ? rs[0] : k === 'End' ? rs.at(-1) : null;
+  if (!next) return; e.preventDefault(); next.focus();
+  if (g.id !== 'placeChips' && next.getAttribute('aria-checked') !== 'true') next.click();
+});
+// 2) 대화상자: 닫으면 연 버튼으로 포커스를 돌려준다. 버튼이 다시 그려졌으면 같은 버튼을, 사라졌으면 지금 화면의 메뉴 버튼으로.
+//    (다른 대화상자 안의 버튼으로 열었고 그 대화상자가 닫혔다면 — 설정 → 자주 걷는 곳 — 그 대화상자를 연 버튼으로)
+const focusKey = el => { if (!el || el === document.body) return null; if (el.id) return '#' + CSS.escape(el.id); const a = ['data-edit', 'data-del', 'data-pick', 'data-tab', 'data-id', 'data-n'].find(x => el.hasAttribute(x)); if (!a) return null; const host = el.closest('[id]'); return `${host ? '#' + CSS.escape(host.id) + ' ' : ''}[${a}="${CSS.escape(el.getAttribute(a))}"]`; };
+const focusable = el => el && el.isConnected && el.getClientRects().length && !el.disabled && !el.closest('dialog:not([open]), [hidden], [inert]');
+if (typeof HTMLDialogElement !== 'undefined') {
+  // 열기 직전에 화면을 다시 그려 연 버튼이 사라지는 경우(주소 찾기)를 위해 마지막으로 포커스된 대화상자 밖 요소를 기억해 둔다
+  let lastFocus = null;
+  document.addEventListener('focusin', e => { if (!e.target.closest?.('dialog')) lastFocus = { el: e.target, key: focusKey(e.target) }; });
+  const showModal = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function (...args) {
+    if (!this.open) { const a = document.activeElement, host = a?.closest?.('dialog'); this._back = host && host !== this && host._back ? { ...host._back } : a && a !== document.body ? { el: a, key: focusKey(a) } : lastFocus; }
+    return showModal.apply(this, args);
+  };
+  document.querySelectorAll('dialog').forEach(d => d.addEventListener('close', () => {
+    const b = d._back; d._back = null; if (!b) return;
+    setTimeout(() => { // 닫은 뒤 목록을 다시 그리는 흐름(수정 저장 등)이 끝난 다음에
+      if (document.querySelector('dialog[open]')) return;
+      const t = [b.el, b.key && document.querySelector(b.key), ...(d.dataset.focusBack ? document.querySelectorAll(d.dataset.focusBack) : [])].find(focusable) ?? document.querySelector('.tabbar button.active');
+      t?.focus?.({ preventScroll: false });
+    }, 0);
+  }));
+}
+
+// 3) 열린 대화상자 안에서 Tab·Shift+Tab 이 처음↔끝으로 돈다(브라우저 주소창 등 바깥으로 빠지지 않게)
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return; const d = [...document.querySelectorAll('dialog[open]')].at(-1); if (!d) return;
+  const f = [...d.querySelectorAll('a[href], button, input:not([type="hidden"]), select, textarea, summary, iframe, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.tabIndex >= 0 && x.getClientRects().length && !x.closest('[hidden]'));
+  if (!f.length) return; const first = f[0], last = f.at(-1), a = document.activeElement;
+  if (!d.contains(a)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+  else if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+});
+
 // ---------- 탭 ----------
 function go(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + tab));
-  document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tabbar button').forEach(b => { b.classList.toggle('active', b.dataset.tab === tab); if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }); // 페이지 탐색 메뉴: 현재 위치는 aria-current
   if (tab === 'shelter') {
     refreshShelter ??= mountShelter($('#shelterRoot'), { api, places: () => places.map(p => p.label), onRegister: () => { go('plan'); $('#placeChips')?.scrollIntoView?.({ block: 'center' }); }, origin: () => firstShelterOrigin || places.find(p => p.selected)?.label || places[0]?.label || originValue(), account: state.auth?.user?.id });
     Promise.resolve(refreshShelter()).catch(uiError);
@@ -878,7 +936,8 @@ async function showApp() {
   timer = startTimer($('#timer'), { onWarn: () => toast('1분 뒤 자동 로그아웃돼요. 필요한 내용은 지금 확인해 주세요.', 8000), onExpire: () => { const min = sessionMinutes(), lq = loginQuota(); endSession(`${min}분 이용 시간이 끝나 로그아웃했어요.`, 'expired'); showSessionEnd(min, lq); } });
   if (state.auth.user?.mustChangePassword) openPw(true);
   refreshUsage();
-  loadPlaces().then(loadDogs).then(() => { rec.ready = true; scheduleRecommend(true); });
+  // 자주 걷는 곳과 우리 아이는 서로 기다릴 필요가 없어 함께 부른다(#37 성능: 직렬 왕복 1번 줄임). 맞춤 코스는 둘 다 온 뒤에
+  Promise.all([loadPlaces(), loadDogs()]).then(() => { rec.ready = true; scheduleRecommend(true); });
   recordLoginLocation();
 }
 // 이용 시간 만료 안내: 이 계정의 로그인 1회 시간과 남은 로그인 횟수(최근 24시간 기준)

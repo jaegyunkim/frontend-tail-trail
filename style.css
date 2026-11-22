@@ -1192,3 +1192,29 @@ dialog::backdrop { background: var(--backdrop); }
   .place-acts { flex-direction: column; }
   .place-acts .ghost, .place-acts .primary { flex: none; width: 100%; min-height: 48px; }
 }
+/* ===== #37 Manus 보고서 반영: 대비(WCAG AA)·포커스 링·좁은 화면 ===== */
+/* 밝은 모드 초록 바탕 흰 글자 3.77 → 5.48: 강조색을 한 단계 진한 에메랄드(#047857)로. 로고·아이콘의 밝은 초록(--brand)은 그대로 */
+:root { --accent: #047857; --accent-hover: #065F46; --focus: #047857; --sky: #0369A1; } /* 강수 글자 하늘색 4.10 → 5.9 */
+:root[data-theme="dark"] { --focus: #34D399; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --focus: #34D399; } }
+/* 결과 점수 숫자(큰 글자 3:1): 좋음 2.54 → 5.48, 주의 2.15 → 5.0 */
+.metric-num.go { color: var(--accent); } .metric-num.caution { color: var(--warn); } .metric-num.indoor { color: var(--bad); }
+/* '위험' 범례·삭제 확인 버튼: 흰/#EF4444 3.76 → 흰/#B91C1C 6.47, 다크는 어두운 글자/#F87171 5.8 */
+.lg.bad, .primary.danger-btn, .primary.danger-btn:hover { background: var(--bad); color: #fff; }
+:root[data-theme="dark"] .lg.bad, :root[data-theme="dark"] .primary.danger-btn { color: #450A0A; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lg.bad, :root:not([data-theme="light"]) .primary.danger-btn { color: #450A0A; } }
+/* 입력 예시문: 불투명도 .85(실효 3.56) → 1 */
+input::placeholder, textarea::placeholder { color: var(--mute); opacity: 1; }
+/* '아기' 배지: 흰/코랄 2.6 → 흰/#C2410C 5.2(두 테마 같은 색) */
+.dog-ava .ava-badge, .ava-img.age-puppy::after, .ava-img.badge-puppy::after { background: #C2410C; color: #fff; }
+/* 포커스 링: 모든 요소·테마에서 보이고 배경과 3:1 이상(밝은 초록 #10B981 은 흰 바탕 2.5라 진한 초록으로) */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+:focus-visible, input:focus, select:focus, textarea:focus { outline-color: var(--focus) !important; }
+/* 하단 고정 버튼·상단 머리말에 키보드 포커스가 가려지지 않게 */
+html { scroll-padding-top: 76px; scroll-padding-bottom: calc(var(--tabbar) + 84px + env(safe-area-inset-bottom)); }
+/* 보호소 필터 320~360: 상태·성별 값이 말줄임되지 않게 여백만 줄인다(2열 배치는 그대로) */
+@media (max-width: 360px) {
+  #shelterRoot .shelter-filters:not([hidden]) { gap: 8px 6px; }
+  #shelterRoot .shelter-filters .shelter-field select { padding-left: 9px; padding-right: 22px; background-position: right 6px center; letter-spacing: -.2px; }
+}
+.safety-note { margin: 6px 2px 12px; font-size: 13px; line-height: 1.5; color: var(--mute); }
