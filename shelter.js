@@ -88,10 +88,22 @@ export function mountShelter(root, { api, origin }) {
     const current = el('h3'), form = el('form','shelter-filters'), status = el('p','shelter-status'), results = el('div','shelter-list'), pager = el('nav','shelter-pager'), source = el('p','shelter-source');
     status.setAttribute('role','status'); pager.setAttribute('aria-label','공고 페이지');
     const controls = {};
-    function selectFilter(k, name, list) { const s = controls[k] = el('select'); options(s,list,filters[k]); form.append(field(name,s)); s.onchange = () => { if (k === 'state') controls.center.value = ''; return apply(); }; }
-    selectFilter('state','보호 상태',[['protect','보호 상태 · 보호 중'],['ended','보호 상태 · 가족을 만난 아이']]); selectFilter('sex','성별',[['','성별 · 전체'],['M','성별 · 수컷'],['F','성별 · 암컷']]);
-    selectFilter('sort','정렬',[['new','정렬 · 최신 공고순'],['ending','정렬 · 공고 종료일순']]); selectFilter('center','보호센터',[['','보호센터 · 전체']]);
-    controls.q = el('input'); controls.q.type = 'search'; controls.q.maxLength = 30; controls.q.placeholder = '품종, 발견 장소, 공고번호';
+    // 옵션 글자 '제목 · 값'. 좁은 화면(480px 미만)은 값이 잘리지 않게 짧은 제목·짧은 값으로(value 는 그대로)
+    const narrowQ = typeof matchMedia === 'function' ? matchMedia('(max-width: 479px)') : null, narrow = () => Boolean(narrowQ?.matches);
+    const FILTER_TEXT = {
+      state: { protect: ['보호 상태 · 보호 중', '상태 · 보호 중'], ended: ['보호 상태 · 가족을 만난 아이', '상태 · 가족 만남'] },
+      sex: { '': ['성별 · 전체', '성별 · 전체'], M: ['성별 · 수컷', '성별 · 수컷'], F: ['성별 · 암컷', '성별 · 암컷'] },
+      sort: { new: ['정렬 · 최신 공고순', '정렬 · 최신순'], ending: ['정렬 · 공고 종료일순', '정렬 · 마감순'] },
+      center: { '': ['보호센터 · 전체', '센터 · 전체'] }
+    };
+    const filterText = (k, v) => FILTER_TEXT[k]?.[v]?.[narrow() ? 1 : 0] ?? (k === 'center' ? (narrow() ? `센터 · ${v}` : `보호센터 · ${v}`) : v);
+    const centerOpts = (list = []) => [['', filterText('center', '')], ...list.map(c => [c.name, `${filterText('center', c.name)} (${c.count})`])];
+    let centerList = [];
+    function selectFilter(k, name) { const s = controls[k] = el('select'); options(s, Object.keys(FILTER_TEXT[k]).map(v => [v, filterText(k, v)]), filters[k]); form.append(field(name,s)); s.onchange = () => { if (k === 'state') controls.center.value = ''; return apply(); }; }
+    selectFilter('state','보호 상태'); selectFilter('sex','성별'); selectFilter('sort','정렬'); selectFilter('center','보호센터');
+    controls.q = el('input'); controls.q.type = 'search'; controls.q.maxLength = 30; controls.q.placeholder = '품종·장소·공고번호';
+    // 폭이 480px 를 넘나들면 옵션 글자만 바꾼다(고른 값 유지)
+    narrowQ?.addEventListener?.('change', () => { if (!alive()) return; for (const k of ['state', 'sex', 'sort']) { const s = controls[k], v = s.value; options(s, Object.keys(FILTER_TEXT[k]).map(x => [x, filterText(k, x)]), v); } const cv = controls.center.value; options(controls.center, centerOpts(centerList), cv); });
     controls.q.setAttribute?.('aria-label','검색어(품종, 발견 장소, 공고번호)');
     const submit = el('button','shelter-submit','검색'); submit.type = 'submit'; form.append(field('검색어',controls.q), submit);
     form.onsubmit = e => { e.preventDefault(); return apply(); }; form.hidden = true;
@@ -113,7 +125,7 @@ export function mountShelter(root, { api, origin }) {
         const r = await get('dogs',{ upr:active.upr, org:active.org, ...filters }); if (!alive() || id !== search) return;
         source.textContent = [r.attribution, r.window && `${r.window.from} ~ ${r.window.to}`, r.source?.fetchedAt && `자료 수집 ${r.source.fetchedAt}`].filter(Boolean).join(' · ');
         if (!['ok','no-data'].includes(r.source?.status)) { fail(({ 'missing-key':'공공데이터 연결이 아직 설정되지 않았어요.', unauthorized:'공공데이터 접근 승인을 확인 중이에요.' })[r.source?.status] || '공공데이터 제공기관에서 자료를 받지 못했어요. 잠시 후 다시 시도하세요.'); return; }
-        const centers = (r.centers || []).map(c => [c.name,`보호센터 · ${c.name} (${c.count})`]); options(controls.center,[['','보호센터 · 전체'],...centers],filters.center);
+        centerList = r.centers || []; options(controls.center, centerOpts(centerList), filters.center);
         const dogs = r.dogs || []; status.textContent = dogs.length ? `검색 결과 ${r.total}마리 · ${r.page}/${r.pages}쪽` : '이 조건에 맞는 최근 7일 공고가 없어요. 지역이나 검색 조건을 바꿔 보세요.';
         results.replaceChildren(...dogs.map(card)); filters.page = r.page || 1;
         if (r.pages > 1) { const go = n => { filters.page = n; return loadDogs(); }; const prev = button('이전',()=>go(r.page-1)), next = button('다음',()=>go(r.page+1)); prev.disabled = r.page <= 1; next.disabled = r.page >= r.pages; pager.append(prev,el('span','',`${r.page} / ${r.pages}`),next); }
@@ -122,7 +134,7 @@ export function mountShelter(root, { api, origin }) {
     function activate(r) {
       if (!validRegion(r) || !alive()) return; ++find; active = { upr:r.upr, org:r.org || null, uprName:r.uprName || '', orgName:r.orgName || '' };
       filters = defaults(); for (const [k,s] of Object.entries(controls)) s.value = filters[k];
-      options(controls.center,[['','보호센터 · 전체']]); current.textContent = `${regionName(active)} · 최근 7일 공고`; form.hidden = false; save.disabled = false;
+      centerList = []; options(controls.center, centerOpts()); current.textContent = `${regionName(active)} · 최근 7일 공고`; form.hidden = false; save.disabled = false;
       note.textContent = saved ? `기본 지역: ${regionName(saved)}` : '지금 보는 지역을 기본 지역으로 저장할 수 있어요.'; return loadDogs();
     }
     async function locate() {

@@ -61,6 +61,16 @@ test('지역 선택·공고 필터: 라벨 글자는 sr-only, 옵션에 제목(�
   assert.deepEqual(opts(field('성별')), [['', '성별 · 전체'], ['M', '성별 · 수컷'], ['F', '성별 · 암컷']]);
   assert.deepEqual(opts(field('정렬')), [['new', '정렬 · 최신 공고순'], ['ending', '정렬 · 공고 종료일순']]);
   assert.equal(opts(field('보호센터'))[0][1], '보호센터 · 전체');
-  assert.equal(field('검색어').placeholder, '품종, 발견 장소, 공고번호'); assert.ok(field('검색어')['aria-label']);
+  assert.equal(field('검색어').placeholder, '품종·장소·공고번호'); assert.ok(field('검색어')['aria-label']);
   const acts = root.all(e => e.className === 'region-acts')[0]; assert.deepEqual(acts.nodes.map(b => b.textContent), ['이 지역 보기', '기본 지역으로 저장', '기본 지역 보기', '산책 출발지로 찾기']);
+});
+test('좁은 화면(480px 미만): 옵션은 짧은 제목·짧은 값, value 는 그대로', async () => {
+  const before = globalThis.matchMedia; globalThis.matchMedia = () => ({ matches: true, addEventListener() {} });
+  try {
+    const { refresh, field } = setup(); await refresh();
+    const opts = s => s.nodes.map(o => [o.value, o.textContent]);
+    assert.deepEqual(opts(field('보호 상태')), [['protect', '상태 · 보호 중'], ['ended', '상태 · 가족 만남']]);
+    assert.deepEqual(opts(field('정렬')), [['new', '정렬 · 최신순'], ['ending', '정렬 · 마감순']]);
+    assert.equal(opts(field('보호센터'))[0][1], '센터 · 전체');
+  } finally { globalThis.matchMedia = before; }
 });

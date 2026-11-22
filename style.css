@@ -1103,3 +1103,13 @@ dialog::backdrop { background: var(--backdrop); }
 #shelterRoot .shelter-filters .shelter-field select { text-overflow: ellipsis; white-space: nowrap; overflow: hidden; padding-right: 30px; }
 #shelterRoot .shelter-filters .shelter-submit { margin: 0; min-height: 48px; }
 @media (max-width: 340px) { #shelterRoot .shelter-filters:not([hidden]) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 6px; } #shelterRoot .shelter-filters .shelter-field select { font-size: 14px; padding-left: 10px; padding-right: 24px; } }
+/* 보호소 필터: 값이 잘리지 않게 [상태|성별] / [보호센터 전체 너비] / [검색어 전체 너비] / [정렬|검색] (모든 폭 공통)
+   좁은 화면(480px 미만)은 옵션 글자도 짧게(shelter.js) */
+#shelterRoot .shelter-filters:not([hidden]) { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "state sex" "center center" "q q" "sort go"; gap: 8px 10px; }
+#shelterRoot .shelter-filters > :nth-child(1) { grid-area: state; } #shelterRoot .shelter-filters > :nth-child(2) { grid-area: sex; }
+#shelterRoot .shelter-filters > :nth-child(3) { grid-area: sort; } #shelterRoot .shelter-filters > :nth-child(4) { grid-area: center; }
+#shelterRoot .shelter-filters > :nth-child(5) { grid-area: q; } #shelterRoot .shelter-filters > :nth-child(6) { grid-area: go; }
+@media (max-width: 479px) {
+  #shelterRoot .shelter-filters:not([hidden]) { gap: 8px; }
+  #shelterRoot .shelter-filters .shelter-field select { font-size: 15px; padding-left: 12px; padding-right: 28px; }
+}
