@@ -81,7 +81,9 @@ test('글을 쓰는 모든 입력칸에 ⓧ(동그라미 안 x) 전체 지우기
 test('강아지 캐릭터: 종류 5개 × 모양 5개 SVG 25장이 있고, 고르기 화면이 크기·체크에 맞는 종류만 보여 준다', () => {
   for (const k of ['small', 'medium', 'large', 'flat', 'coat']) for (let n = 1; n <= 5; n++) { const f = new URL(`../assets/dogs/${k}-${n}.svg`, import.meta.url); assert.ok(fs.existsSync(f), `${k}-${n}.svg`); assert.match(fs.readFileSync(f, 'utf8'), /^<svg[^>]+viewBox="0 0 200 200"/); }
   const js = read('app.js'); assert.match(js, /id="dogAvatar"|#dogAvatar/); assert.match(read('index.html'), /id="dogAvatar"/);
-  assert.match(js, /get avatar\(\) \{ return `\$\{kindOf\(this\)\}-\$\{dogDraft\.variant\}`; \}/);
+  // #26: 고른 그림 이름을 저장(서버가 그림 이름을 받을 때만), 아니면 옛 형식 `{종류}-{번호}`
+  assert.match(js, /get avatar\(\) \{ return isArtId\(dogDraft\.art\) \? dogDraft\.art : `\$\{kindOf\(this\)\}-\$\{dogDraft\.variant\}`; \}/);
+  assert.match(js, /const saveAvatar = b => dogOptions\.avatar\?\.art && isArtId\(dogDraft\.art\) \? dogDraft\.art :/);
 });
 test('주변 탭 종류 6개는 한 줄(줄바꿈 없음), 넘치면 가로 스크롤·고른 칩 보이기', () => {
   const h = read('index.html'), c = read('style.css'), a = read('app.js');

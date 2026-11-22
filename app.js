@@ -21,6 +21,8 @@ function nextSaturday() { const d = new Date(Date.now() + 9 * 3600000); const ad
 let lastUiErr = 0;
 function uiError(e) { const now = Date.now(); if (now - lastUiErr < 8000) return; lastUiErr = now; try { toast(errText(e), 7000); } catch { /* 화면이 없으면 건너뜀 */ } }
 window.addEventListener('error', ev => { if (ev.target && ev.target !== window) return; if (/ResizeObserver/.test(ev.message || '')) return; uiError(ev.error ?? ev.message); });
+// 캐리커처 파일이 없거나(삭제·미생성) 못 받으면 대표 그림으로(한 번만)
+document.addEventListener('error', ev => { const t = ev.target; if (t?.tagName === 'IMG' && /assets\/caricatures\//.test(t.getAttribute('src') || '') && !t.dataset.fallback) { t.dataset.fallback = '1'; t.src = `assets/caricatures/${DEFAULT_CARICATURE}.webp`; } }, true);
 window.addEventListener('unhandledrejection', ev => uiError(ev.reason));
 
 // ---------- 칩 ----------
@@ -45,8 +47,10 @@ const AGE_HINT = { puppy: '1살 미만. 예방접종 중이면 짧게, 사람 �
 const sizeLabel = id => dogOptions.sizes.find(s => s.id === id)?.label ?? id, ageLabel = id => dogOptions.ages.find(a => a.id === id)?.label ?? id;
 const dogSub = d => [sizeLabel(d.size), ageLabel(d.age), d.flatFace ? '단두종' : '', d.thickCoat ? '두꺼운 털' : ''].filter(Boolean).join(' · ');
 // ===== 캐릭터 매칭(#23) =====
-// 저장 id 는 백엔드 형식 그대로 `{종류}-{1~5}`(cleanAvatar 가 이 형식만 받음). 번호는 "그 아이의 4가지 특성
-// (크기·나이·단두종·이중모)으로 계산한 후보 목록에서 몇 번째인가"로 읽는다 → 백엔드 변경 없이 견종이 늘어나도 된다.
+// 저장 id 두 가지(#26): 새 형식은 그림 이름 그대로(예: saint-bernard-senior, husky-puppy, maltese-3) → 그림이 늘어 후보 순서가
+// 바뀌어도 저장된 아이의 그림은 그대로다. 옛 형식 `{종류}-{1~5}`(#23)은 "그 아이의 4가지 특성(크기·나이·단두종·이중모)으로 계산한
+// 후보 목록에서 몇 번째인가"로 읽고(지금 보이는 그림 유지), 아이를 수정해 저장하면 그 그림의 이름으로 바꿔 저장한다.
+// 그림 이름은 파일 이름이라 한번 쓴 이름은 바꾸거나 지우지 않는다(지워져도 화면은 후보 1번 → 대표 그림으로 폴백).
 // 새 유화 캐리커처 추가: assets/caricatures/{그림이름}.webp(256px) 를 넣고 아래 BREEDS 의 art 에 이름을 적으면 끝.
 //   ages 에 나이 전용 그림을 적으면 그 나이에서 최우선, 없으면 나이 변형(강아지 '아기' 배지 / 노령 은빛 톤 + '어르신' 배지)으로 보여 준다.
 const BREEDS = {
@@ -97,8 +101,22 @@ function characterCandidates(d = {}) {
 const comboLabel = d => [SIZE_KO[d.size] ?? '중형', AGE_KO[d.age] ?? '성견', d.flatFace ? '단두종' : '', d.thickCoat ? '이중모' : ''].filter(Boolean).join(' · ');
 const kindOf = d => d?.flatFace ? 'flat' : d?.thickCoat ? 'coat' : (['small', 'medium', 'large'].includes(d?.size) ? d.size : 'medium');
 const avatarId = d => /^(small|medium|large|flat|coat)-[1-5]$/.test(d?.avatar ?? '') ? d.avatar : `${kindOf(d)}-${((Number(d?.id) || 0) % 5) + 1}`;
-/** 저장 id 의 번호 → 그 아이 특성의 후보 중 그 순번(후보가 적으면 1번) */
-const characterFor = d => { const c = characterCandidates(d), n = Number(avatarId(d).slice(-1)) || 1; return c[n - 1] ?? c[0] ?? { art: DEFAULT_CARICATURE, label: '리트리버', ageVariant: null }; };
+// 백엔드 cleanAvatar 와 같은 모양 검사(소문자 시작, 소문자·숫자 조각을 - 또는 _ 로 4번까지, 40자 이하, 옛 형식처럼 보이는 값 제외)
+const isArtId = v => typeof v === 'string' && v.length <= 40 && /^[a-z][a-z0-9]*(?:[-_][a-z0-9]+){0,4}$/.test(v) && !/^(small|medium|large|flat|coat)-[0-9]+$/.test(v);
+const artBreed = name => Object.entries(BREEDS).find(([, b]) => b.art.includes(name) || Object.values(b.ages ?? {}).flat().includes(name))?.[0] ?? null;
+/** 후보 밖의 그림(저장된 그림 이름)을 후보와 같은 모양으로. 표에 없는 이름(삭제·미생성)이면 null */
+function artEntry(art, d = {}) {
+  const breed = artBreed(art); if (!breed) return null;
+  const age = AGE_KO[d.age] ? d.age : 'adult', b = BREEDS[breed], dedicated = (b.ages?.[age] ?? []).includes(art);
+  return { art, breed, ageVariant: dedicated || age === 'adult' ? null : age, ageBadge: age === 'adult' ? null : age, label: (age === 'adult' ? '' : AGE_PREFIX[age]) + (ART_NAME[art] ?? b.label) };
+}
+const DEFAULT_CHARACTER = { art: DEFAULT_CARICATURE, breed: 'retriever', label: '리트리버', ageVariant: null };
+/** 저장 id → 보여 줄 그림. 그림 이름이면 그 그림 그대로(후보 순서와 무관), 옛 형식이면 그 아이 특성의 후보 중 그 순번(후보가 적으면 1번) */
+const characterFor = d => {
+  const c = characterCandidates(d);
+  if (isArtId(d?.avatar)) return c.find(x => x.art === d.avatar) ?? artEntry(d.avatar, d) ?? c[0] ?? DEFAULT_CHARACTER;
+  const n = Number(avatarId(d).slice(-1)) || 1; return c[n - 1] ?? c[0] ?? DEFAULT_CHARACTER;
+};
 const caricatureSrc = name => `assets/caricatures/${Object.values(BREEDS).some(b => b.art.includes(name) || Object.values(b.ages ?? {}).flat().includes(name)) ? name : DEFAULT_CARICATURE}.webp`;
 const AGE_BADGE = { puppy: '아기', senior: '어르신' };
 const avatar = (d, cls = '') => { const ch = characterFor(d); return `<span class="dog-ava ${cls}${ch.ageVariant ? ' age-' + ch.ageVariant : ''}" aria-hidden="true"><img src="${caricatureSrc(ch.art)}" alt="" width="96" height="96" loading="lazy" decoding="async">${AGE_BADGE[d?.age] ? `<i class="ava-badge">${AGE_BADGE[d.age]}</i>` : ''}</span>`; };
@@ -165,8 +183,15 @@ function drawDogDraftChips() {
 }
 /** 캐릭터 고르기: 지금 고른 크기·단두종·털에 맞는 종류의 5개 중 1개 */
 let pickerArts = null; // 직전에 보여 준 후보 {art, breed}(특성이 바뀔 때 사용자가 고른 그림, 없으면 같은 견종이 새 후보에도 있으면 유지)
+const sameTraits = (a, b) => !!a && !!b && a.size === b.size && a.age === b.age && Boolean(a.flatFace) === Boolean(b.flatFace) && Boolean(a.thickCoat) === Boolean(b.thickCoat);
+/** 수정 창 후보: 저장돼 있던 그림이 (그림이 늘어) 지금 후보 5개 밖으로 밀렸어도 특성을 그대로 두면 그 그림을 끝에 붙여 계속 고를 수 있게 */
+function pickerCands(body) {
+  const c = characterCandidates(body), keep = dogDraft.keepArt;
+  if (keep && !c.some(x => x.art === keep) && sameTraits(body, dogDraft.orig)) { const e = artEntry(keep, body); if (e) return [...c, e]; }
+  return c;
+}
 function drawAvatarPicker() {
-  const body = draftBody(), cands = characterCandidates(body), box = $('#dogAvatar');
+  const body = draftBody(), cands = pickerCands(body), box = $('#dogAvatar');
   // 사용자가 직접 고른 그림(또는 저장돼 있던 그림)이 새 후보에도 있으면 유지, 그림은 없어도 같은 견종이 있으면 그 견종
   // (예: 허스키를 고른 채 노령견으로 바꾸면 노령 허스키 전용 그림), 둘 다 없으면 새 조합의 1번
   if (pickerArts) {
@@ -176,7 +201,7 @@ function drawAvatarPicker() {
     dogDraft.variant = i >= 0 ? i + 1 : 1;
   }
   if (dogDraft.variant > cands.length) dogDraft.variant = 1;
-  pickerArts = cands.map(c => ({ art: c.art, breed: c.breed })); const v = dogDraft.variant;
+  pickerArts = cands.map(c => ({ art: c.art, breed: c.breed })); const v = dogDraft.variant; dogDraft.art = cands[v - 1]?.art ?? null;
   $('#dogAvatarKind').textContent = comboLabel(body);
   box.innerHTML = cands.map((c, i) => { const n = i + 1; return `<button type="button" class="ava-opt${n === v ? ' on' : ''}" role="radio" aria-checked="${n === v}" data-n="${n}" aria-label="${esc(c.label)}"><span class="ava-img${c.ageVariant ? ' age-' + c.ageVariant : ''}${c.ageBadge ? ' badge-' + c.ageBadge : ''}"><img src="${caricatureSrc(c.art)}" alt="" width="64" height="64" decoding="async"></span><small>${esc(c.label)}</small></button>`; }).join('');
   box.querySelectorAll('.ava-opt').forEach(b => b.onclick = () => { dogDraft.variant = Number(b.dataset.n); dogDraft.picked = true; drawAvatarPicker(); scheduleDogLive(); });
@@ -184,7 +209,9 @@ function drawAvatarPicker() {
   const live = document.querySelector('#dogLive .dog-ava'); if (live) live.outerHTML = avatar({ ...body, avatar: body.avatar }, 'lg');
 }
 function updateDogHints() { drawAvatarPicker(); $('#dogSizeHint').textContent = SIZE_EX[dogDraft.size] ?? ''; $('#dogAgeHint').textContent = AGE_HINT[dogDraft.age] ?? ''; scheduleDogLive(); }
-const draftBody = () => ({ name: $('#dogName').value.trim(), size: dogDraft.size, age: dogDraft.age, flatFace: $('#dogFlat').checked, thickCoat: $('#dogCoat').checked, get avatar() { return `${kindOf(this)}-${dogDraft.variant}`; } });
+const draftBody = () => ({ name: $('#dogName').value.trim(), size: dogDraft.size, age: dogDraft.age, flatFace: $('#dogFlat').checked, thickCoat: $('#dogCoat').checked, get avatar() { return isArtId(dogDraft.art) ? dogDraft.art : `${kindOf(this)}-${dogDraft.variant}`; } });
+/** 저장할 avatar: 서버가 그림 이름을 받으면(dog-options 의 avatar.art) 그림 이름, 아니면 옛 형식(되돌린 서버에서도 저장이 거부되지 않게) */
+const saveAvatar = b => dogOptions.avatar?.art && isArtId(dogDraft.art) ? dogDraft.art : `${kindOf(b)}-${dogDraft.variant <= 5 ? dogDraft.variant : 1}`;
 /** 입력하는 동안 '이 아이는 이렇게 판단해요'를 바로 보여 준다(서버의 같은 계산, 저장하지 않음) */
 function scheduleDogLive() { clearTimeout(liveTimer); liveTimer = setTimeout(async () => {
   const b = draftBody(), box = $('#dogLive');
@@ -207,7 +234,10 @@ function checkDogName() {
 $('#dogName').addEventListener('input', checkDogName);
 function openDogForm(dog = null) {
   dogEditId = dog?.id ?? null; const first = !dogs.length;
-  dogDraft = dog ? { size: dog.size, age: dog.age, variant: Math.min(Number(avatarId(dog).slice(-1)) || 1, characterCandidates(dog).length || 1), picked: true } : { size: 'medium', age: 'adult', variant: 1, picked: false }; pickerArts = null;
+  // 수정: 지금 화면에 보이는 그림(옛 형식이면 후보 순번으로 읽은 그림)을 그대로 골라 둔다 → 저장하면 그 그림 이름으로 바뀐다
+  if (dog) { const art = characterFor(dog).art; dogDraft = { size: dog.size, age: dog.age, variant: 1, picked: true, art, keepArt: art, orig: { size: dog.size, age: dog.age, flatFace: Boolean(dog.flatFace), thickCoat: Boolean(dog.thickCoat) } };
+    const i = pickerCands(dogDraft.orig).findIndex(c => c.art === art); dogDraft.variant = i >= 0 ? i + 1 : 1; }
+  else dogDraft = { size: 'medium', age: 'adult', variant: 1, picked: false }; pickerArts = null;
   $('#dogName').value = dog?.name ?? ''; $('#dogFlat').checked = Boolean(dog?.flatFace); $('#dogCoat').checked = Boolean(dog?.thickCoat); $('#dogMsg').textContent = '';
   $('#dogFormTitle').textContent = dog ? `${dog.name} 정보 수정` : first ? '우리 아이 처음 등록' : `아이 추가 등록 (${dogs.length + 1}/${dogOptions.maxDogs}번째)`;
   $('#dogSubmit').textContent = dog ? '수정 저장' : first ? '첫 아이 등록하기' : '추가 등록하기';
@@ -219,7 +249,7 @@ $('#dogDialog').addEventListener('click', e => { if (e.target === $('#dogDialog'
 $('#dogForm').onsubmit = async e => {
   e.preventDefault(); const m = $('#dogMsg'); m.textContent = '';
   if (!checkDogName()) { $('#dogName').focus(); return; }
-  const body = JSON.stringify(draftBody()), first = !dogs.length, editing = dogEditId != null, btn = $('#dogSubmit'); btn.disabled = true;
+  const b = draftBody(), body = JSON.stringify({ ...b, avatar: saveAvatar(b) }), first = !dogs.length, editing = dogEditId != null, btn = $('#dogSubmit'); btn.disabled = true;
   try {
     if (editing) { const r = await api(`/v1/me/dogs/${dogEditId}/update`, { method: 'POST', body }); dogs = r.dogs; drawDogChips(); renderDogs(); closeDogForm(); toast(`'${r.dog.name}' 정보를 수정했어요`); }
     else { const r = await api('/v1/me/dogs', { method: 'POST', body }); dogs = r.dogs; sel.dogId = r.dog.id; drawDogChips(); renderDogs(); closeDogForm(); toast(first ? `'${r.dog.name}'을(를) 등록했어요. 이제 오늘 산책을 판단해 볼까요?` : `'${r.dog.name}'을(를) 추가했어요`); if (first) go('plan'); }

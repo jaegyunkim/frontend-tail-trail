@@ -48,7 +48,7 @@ function makeContext(apiImpl) {
 }
 const FOOTER = `
 globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName, characterCandidates, characterFor, comboLabel, caricatureSrc, BREEDS, drawAvatarPicker, setDraft: d => { dogDraft = d; }, getDraft: () => dogDraft, agentSay, applyTheme,
-  setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel };`;
+  setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel, isArtId, artEntry, pickerCands, saveAvatar, draftBody, setOptions: o => { dogOptions = o; } };`;
 const load = apiImpl => { const ctx = makeContext(apiImpl); vm.runInContext(SRC.replace(/^import .*$/gm, '') + FOOTER, ctx, { filename: 'app.js' }); return ctx.__app; };
 
 const DOGS = [{ id: 1, name: '앤비', size: 'small', age: 'adult', flatFace: false, thickCoat: true, selected: true, care: { summary: '알맞은 산책 약 30분 · 28℃ 넘으면 조심', maxC: 28, minutes: 30, traits: [{ icon: '🧊', key: 'small', note: '소형견은 …' }] } },
@@ -246,4 +246,58 @@ test('#25 2차 유화 8장: 프렌치불독(소형·단두종)·시바 아기/�
     const list = c({ size, age, flatFace: f, thickCoat: t }); assert.equal(new Set(list.map(x => x.breed)).size, list.length);
     assert.ok(list.every(x => Math.abs({ small: 0, medium: 1, large: 2 }[app.BREEDS[x.breed].size] - { small: 0, medium: 1, large: 2 }[size]) <= 1));
   }
+});
+
+// ===== #26 캐릭터 저장 id = 그림 이름 =====
+const COMBOS = []; for (const size of ['small', 'medium', 'large']) for (const age of ['puppy', 'adult', 'senior']) for (const flatFace of [false, true]) for (const thickCoat of [false, true]) COMBOS.push({ size, age, flatFace, thickCoat });
+const kind = d => d.flatFace ? 'flat' : d.thickCoat ? 'coat' : d.size;
+test('그림 id 형식: 백엔드와 같은 모양 검사(옛 형식·경로·대문자·긴 값은 그림 이름이 아님)', () => {
+  const app = load(async () => OPTIONS);
+  for (const ok of ['saint-bernard-senior', 'husky-puppy', 'maltese-3', 'retriever', 'saint_bernard-senior']) assert.ok(app.isArtId(ok), ok);
+  for (const no of ['small-3', 'coat-5', 'small-9', '../x', 'Husky', '<b>', 'a'.repeat(41), '', null, 'husky.webp']) assert.equal(app.isArtId(no), false, String(no));
+});
+test('저장 id 안정성: 후보 표에 그림을 더해 순서가 바뀌어도 그림 이름으로 저장된 아이의 그림은 그대로', () => {
+  const app = load(async () => OPTIONS), saved = [];
+  for (const d of COMBOS) for (const c of app.characterCandidates(d)) saved.push({ ...d, avatar: c.art });
+  const before = saved.map(d => app.characterFor(d).art);
+  assert.deepEqual(before, saved.map(d => d.avatar), '그림 이름은 그대로 읽힌다');
+  // 모든 크기에 점수가 높은 새 견종·나이 전용 그림을 맨 앞에 끼워 넣는다(후보 순서·5개 컷이 모두 바뀜)
+  app.BREEDS.zz_large = { size: 'large', brachy: true, doubleCoat: true, label: '새대형', art: ['zz-large', 'zz-large-2'], ages: { puppy: ['zz-large-puppy'], senior: ['zz-large-senior'] } };
+  app.BREEDS.zz_small = { size: 'small', brachy: true, doubleCoat: true, label: '새소형', art: ['zz-small', 'zz-small-2'], ages: { puppy: ['zz-small-puppy'], senior: ['zz-small-senior'] } };
+  app.BREEDS.zz_medium = { size: 'medium', brachy: true, doubleCoat: true, label: '새중형', art: ['zz-medium'], ages: {} };
+  assert.deepEqual(saved.map(d => app.characterFor(d).art), before, '새 그림이 추가돼도 저장된 그림 그대로');
+  // 후보 5개 밖으로 밀린 그림도 나이 변형(은빛·아기)은 그 아이 나이로
+  const senior = saved.find(d => d.age === 'senior' && d.avatar === 'retriever'); assert.equal(app.characterFor(senior).ageVariant, 'senior');
+});
+test('옛 형식 {종류}-{번호}는 지금 운영과 같은 그림(후보 순번)으로 읽는다', () => {
+  const app = load(async () => OPTIONS);
+  for (const d of COMBOS) { const c = app.characterCandidates(d); for (let n = 1; n <= 5; n++) assert.equal(app.characterFor({ ...d, avatar: `${kind(d)}-${n}` }).art, (c[n - 1] ?? c[0]).art); }
+  assert.equal(app.characterFor({ id: 7, size: 'large', age: 'adult' }).art, app.characterCandidates({ size: 'large', age: 'adult' })[2].art, '고르기 전(없음)은 id 로 순번');
+});
+test('없는 그림 id(삭제·미생성)는 깨지지 않고 후보 1번 → 실제 파일', () => {
+  const app = load(async () => OPTIONS);
+  for (const avatar of ['deleted-art', 'samoyed', 'cat-1']) for (const d of COMBOS) { const ch = app.characterFor({ ...d, avatar }); assert.equal(ch.art, app.characterCandidates(d)[0].art);
+    assert.ok(fs.existsSync(new URL('../' + app.caricatureSrc(ch.art), import.meta.url))); }
+  const src = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8'); assert.match(src, /document\.addEventListener\('error', ev => \{ const t = ev\.target; if \(t\?\.tagName === 'IMG' && \/assets\\\/caricatures\\\//);
+});
+test('수정 창: 옛 형식 아이는 지금 보이는 그림이 골라져 있고, 저장하면 그 그림 이름으로 바뀐다(서버가 받을 때만)', () => {
+  const app = load(async () => OPTIONS); app.setDogs(DOGS);
+  // 가짜 화면은 체크박스 두 개가 한 노드를 같이 써서(단두종=털) 두 값이 같은 조합만 돈다
+  for (const d of COMBOS.filter(x => x.flatFace === x.thickCoat)) for (let n = 1; n <= 5; n++) {
+    const dog = { id: 3, name: 'x', ...d, avatar: `${kind(d)}-${n}` }, shown = app.characterFor(dog).art;
+    app.setOptions({ ...OPTIONS, avatar: { kinds: [], variants: 5, art: { maxLength: 40 } } }); app.openDogForm(dog);
+    const b = app.draftBody();
+    assert.equal(app.getDraft().art, shown, JSON.stringify(dog)); assert.equal(app.saveAvatar(b), shown);
+    app.setOptions(OPTIONS); assert.match(app.saveAvatar(b), /^(small|medium|large|flat|coat)-[1-5]$/, '그림 이름을 모르는(되돌린) 서버에는 옛 형식');
+  }
+});
+test('수정 창: 저장된 그림이 후보 5개 밖으로 밀려도 특성 그대로면 계속 고를 수 있고, 특성을 바꾸면 새 후보 규칙(없으면 1번)', () => {
+  const app = load(async () => OPTIONS); app.setDogs(DOGS);
+  const d = { size: 'large', age: 'adult', flatFace: false, thickCoat: false }, dog = { id: 4, name: 'y', ...d, avatar: 'husky' };
+  for (const k of ['a', 'b', 'c', 'd', 'e']) app.BREEDS['zz' + k] = { size: 'large', brachy: false, doubleCoat: false, label: k, art: ['zz-' + k], ages: {} };
+  assert.ok(!app.characterCandidates(d).some(c => c.art === 'husky'), '허스키가 후보 밖');
+  assert.equal(app.characterFor(dog).art, 'husky', '화면은 그대로');
+  app.openDogForm(dog); assert.equal(app.getDraft().art, 'husky'); assert.equal(app.pickerCands(d).at(-1).art, 'husky');
+  app.drawAvatarPicker(); app.setDraft({ ...app.getDraft(), size: 'small' }); app.drawAvatarPicker();
+  assert.equal(app.getDraft().variant, 1); assert.equal(app.getDraft().art, app.characterCandidates({ ...d, size: 'small' })[0].art, '새 조합 후보에 없으면 새 1번');
 });
