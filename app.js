@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-24';
+import { mountShelter } from './shelter.js?v=0.1.6-25';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -72,8 +72,8 @@ const BREEDS = {
   french_bulldog: { size: 'small',  brachy: true,  doubleCoat: false, label: '프렌치불독',   art: ['french-bulldog'], ages: { puppy: ['french-bulldog-puppy'], senior: ['french-bulldog-senior'] } },
   pug:            { size: 'small',  brachy: true,  doubleCoat: false, label: '퍼그',         art: ['pug'], ages: { puppy: ['pug-puppy'], senior: ['pug-senior'] } },
   shih_tzu:       { size: 'small',  brachy: true,  doubleCoat: true,  label: '시츄',         art: ['shih-tzu'], ages: { puppy: ['shih-tzu-puppy'], senior: ['shih-tzu-senior'] } },
-  chihuahua:      { size: 'small',  brachy: false, doubleCoat: false, label: '치와와',       art: [], ages: { puppy: ['chihuahua-puppy'], senior: ['chihuahua-senior'] } }, // 성견 그림(chihuahua)은 다음 배치: 오면 art 에 이름만
-  dachshund:      { size: 'small',  brachy: false, doubleCoat: false, label: '닥스훈트',     art: [], ages: {} }
+  chihuahua:      { size: 'small',  brachy: false, doubleCoat: false, label: '치와와',       art: ['chihuahua'], ages: { puppy: ['chihuahua-puppy'], senior: ['chihuahua-senior'] } },
+  dachshund:      { size: 'small',  brachy: false, doubleCoat: false, label: '닥스훈트',     art: ['dachshund'], ages: {} } // 아기·노령 그림은 다음 배치: 오면 ages 에 이름만(그 전에는 성견 그림의 나이 변형)
 };
 // 옛 형식 {종류}-{1~5} 해석 고정(#34): 그림 이름 저장(#26)이 배포될 때의 운영 후보 표(97d1326~d4185b8, 0.1.6-17~19) 그대로.
 // 옛 형식 아이는 이 표로만 후보 순번을 읽으므로 위 BREEDS 에 그림이 늘어도 운영에서 보이던 그림이 바뀌지 않는다. 이 표는 고치지 말 것.
@@ -135,7 +135,7 @@ const characterFor = d => {
   const c = characterCandidates(d, LEGACY_BREEDS), n = Number(avatarId(d).slice(-1)) || 1; return c[n - 1] ?? c[0] ?? DEFAULT_CHARACTER;
 };
 // 같은 이름으로 그림 파일을 교체했을 때(이름 = 저장 id 라 바꿀 수 없음) 브라우저 캐시의 옛 그림을 쓰지 않게 주소에 판 번호를 붙인다. 교체할 때마다 +1
-const ART_REV = { 'chow-chow-senior': 2 };
+const ART_REV = { 'chow-chow-senior': 2, jindo: 2 }; // 같은 이름으로 내용을 바꾼 그림(진돗개 성견: '팡!' 글자·배경 없앤 판)
 const caricatureSrc = name => { const n = Object.values(BREEDS).some(b => b.art.includes(name) || Object.values(b.ages ?? {}).flat().includes(name)) ? name : DEFAULT_CARICATURE; return `assets/caricatures/${n}.webp${ART_REV[n] ? '?v=' + ART_REV[n] : ''}`; };
 const AGE_BADGE = { puppy: '아기', senior: '어르신' };
 const avatar = (d, cls = '') => { const ch = characterFor(d); return `<span class="dog-ava ${cls}${ch.ageVariant ? ' age-' + ch.ageVariant : ''}" aria-hidden="true"><img src="${caricatureSrc(ch.art)}" alt="" width="96" height="96" loading="lazy" decoding="async">${AGE_BADGE[d?.age] ? `<i class="ava-badge">${AGE_BADGE[d.age]}</i>` : ''}</span>`; };

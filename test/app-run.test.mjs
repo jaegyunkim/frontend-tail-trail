@@ -162,7 +162,7 @@ test('수정 창: 특성이 바뀌면 후보 다시 계산, 고른 그림이 새
 test('서비스워커가 미리 받아 두는 캐리커처 파일이 모두 있다', () => {
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
   const names = [...sw.match(/const CARICATURES = \[([^\]]+)\]/)[1].matchAll(/'([a-z0-9-]+)'/g)].map(m => m[1]);
-  assert.equal(names.length, 39);
+  assert.equal(names.length, 41);
   for (const n of names) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${n}.webp`, import.meta.url)), n);
 });
 test('에이전트 말풍선·신호등·화면 모드', () => {
@@ -259,12 +259,11 @@ test('#36 유화 8장: 사모예드(대형·이중모)·진돗개(중형·이중
   assert.equal(arts({ size: 'medium', age: 'senior', thickCoat: true })[0], 'jindo-senior');
   const cp = c({ size: 'small', age: 'puppy' }).find(x => x.breed === 'chihuahua'); assert.equal(cp.art, 'chihuahua-puppy'); assert.equal(cp.label, '아기 치와와');
   const cs = c({ size: 'small', age: 'senior' }).find(x => x.breed === 'chihuahua'); assert.equal(cs.art, 'chihuahua-senior'); assert.equal(cs.label, '어르신 치와와');
-  // 치와와 성견 그림은 아직 없음: 아기·노령 그림이 성견 후보에 쓰이지 않는다
+  // 아기·노령 그림이 성견 후보에 쓰이지 않는다(치와와 성견 칸은 성견 그림만)
   for (const size of ['small', 'medium', 'large']) for (const f of [false, true]) for (const t of [false, true]) {
-    const a = arts({ size, age: 'adult', flatFace: f, thickCoat: t }); assert.ok(!a.some(x => x.startsWith('chihuahua')), `${size}/${f}/${t}`);
+    const a = arts({ size, age: 'adult', flatFace: f, thickCoat: t }); assert.ok(!a.some(x => /^chihuahua-/.test(x)), `${size}/${f}/${t}`);
     for (const age of ['puppy', 'adult']) assert.ok(!arts({ size, age, flatFace: f, thickCoat: t }).some(x => x.endsWith('-senior')), `${size}/${age}`);
   }
-  assert.equal(app.BREEDS.dachshund.art.length, 0); assert.equal(app.BREEDS.chihuahua.art.length, 0);
 });
 
 // ===== #26 캐릭터 저장 id = 그림 이름 =====
@@ -300,7 +299,7 @@ test('옛 형식 {종류}-{번호}는 운영(0.1.6-19)에서 보이던 그림 �
 });
 test('없는 그림 id(삭제·미생성)는 깨지지 않고 후보 1번 → 실제 파일', () => {
   const app = load(async () => OPTIONS);
-  for (const avatar of ['deleted-art', 'dachshund', 'chihuahua', 'cat-1']) for (const d of COMBOS) { const ch = app.characterFor({ ...d, avatar }); assert.equal(ch.art, app.characterCandidates(d)[0].art);
+  for (const avatar of ['deleted-art', 'dachshund-puppy', 'beagle', 'cat-1']) for (const d of COMBOS) { const ch = app.characterFor({ ...d, avatar }); assert.equal(ch.art, app.characterCandidates(d)[0].art);
     assert.ok(fs.existsSync(new URL('../' + app.caricatureSrc(ch.art), import.meta.url))); }
   const src = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8'); assert.match(src, /document\.addEventListener\('error', ev => \{ const t = ev\.target; if \(t\?\.tagName === 'IMG' && \/assets\\\/caricatures\\\//);
 });
@@ -364,4 +363,15 @@ test('H6 남은 산책 판단은 한 곳에만: 결과가 없거나 횟수를 �
   assert.equal(quota.hidden, true, '결과가 있으면 버튼 아래는 숨기고'); assert.equal(tag.hidden, false, '결과 위쪽에만 보인다');
   app.setUsage({ limits: lim, today: { messages: 100 }, session: 0 }); app.renderQuota();
   assert.equal(quota.hidden, false, '횟수를 다 써 버튼이 잠기면 버튼 아래 안내가 다시 보인다'); assert.equal(btn.disabled, true);
+});
+
+test('유화 3장: 치와와 성견·닥스훈트 성견 연결, 진돗개 성견은 같은 이름으로 교체(?v=2), 닥스훈트 아기·노령 칸은 비움', () => {
+  const app = load(async () => OPTIONS), c = d => app.characterCandidates(d), arts = d => c(d).map(x => x.art);
+  for (const f of ['chihuahua', 'dachshund', 'jindo']) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${f}.webp`, import.meta.url)), f);
+  assert.equal(app.caricatureSrc('jindo'), 'assets/caricatures/jindo.webp?v=2'); assert.equal(app.caricatureSrc('chihuahua'), 'assets/caricatures/chihuahua.webp');
+  const sa = arts({ size: 'small', age: 'adult' }); assert.ok(sa.includes('chihuahua') && sa.includes('dachshund'), sa.join());
+  // 닥스훈트 아기·노령은 전용 그림이 없어 성견 그림의 나이 변형(아기 배지·은빛 톤)
+  for (const age of ['puppy', 'senior']) { const d = c({ size: 'small', age }).find(x => x.breed === 'dachshund'); if (d) { assert.equal(d.art, 'dachshund'); assert.equal(d.ageVariant, age); } }
+  assert.equal(Object.keys(app.BREEDS.dachshund.ages).length, 0);
+  assert.equal(arts({ size: 'medium', age: 'adult', thickCoat: true }).slice(0, 2).join(), 'corgi,jindo');
 });
