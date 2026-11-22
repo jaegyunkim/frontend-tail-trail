@@ -1218,3 +1218,12 @@ html { scroll-padding-top: 76px; scroll-padding-bottom: calc(var(--tabbar) + 84p
   #shelterRoot .shelter-filters .shelter-field select { padding-left: 9px; padding-right: 22px; background-position: right 6px center; letter-spacing: -.2px; }
 }
 .safety-note { margin: 6px 2px 12px; font-size: 13px; line-height: 1.5; color: var(--mute); }
+/* ===== #35 보류 결정 반영(H2·H4·H5) ===== */
+/* H2: 340px 이하에서만 상태·성별을 한 줄씩(그 위 폭은 합의된 2열 그대로) */
+@media (max-width: 340px) { #shelterRoot .shelter-filters:not([hidden]) { grid-template-areas: "state state" "sex sex" "center center" "q q" "sort go"; } }
+/* H4: 캐릭터 '아기/어르신' 배지 10px → 12px(진한 단색 배경, 그림을 덜 가리게 여백은 줄임) */
+.dog-ava .ava-badge, .ava-img.age-senior::after, .ava-img.age-puppy::after, .ava-img.badge-senior::after, .ava-img.badge-puppy::after { font-size: 12px; line-height: 1.2; padding: 1px 5px; }
+.dog-ava.age-senior .ava-badge, .ava-img.age-senior::after, .ava-img.badge-senior::after { background: #475569; }
+/* H5: 결과 화면 산책 코스 버튼 4개(지도·길찾기·두루누비·다녀왔어요)가 한 개만 줄넘김되지 않게: 좁으면 2×2, 넓으면 한 줄 4칸 */
+.course .links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 560px) { .course .links { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

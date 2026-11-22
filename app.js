@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-23';
+import { mountShelter } from './shelter.js?v=0.1.6-24';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -726,7 +726,7 @@ function syncPlaceButtons() {
   $('#postcodeOpen').disabled = !$('#placeInput').value.trim();
   $('#placeAdd').disabled = full || !pickedPlace; $('#placeOnce').disabled = !pickedPlace;
   if (full) $('#placeInput').placeholder = '5곳이 찼어요(저장은 하나를 지운 뒤, 이번만 쓰기는 가능)';
-  else $('#placeInput').placeholder = '동네·도로명 입력 (예: 망원동)';
+  else $('#placeInput').placeholder = '예: 망원동';
 }
 function setPicked(coarse) { syncClearButtons(); pickedPlace = coarse || null; $('#placePicked').hidden = !pickedPlace; $('#placePickedText').textContent = pickedPlace ?? ''; syncPlaceButtons(); if (pickedPlace) $('#placeAdd').focus(); }
 function openPlaces(query = '') {
@@ -833,7 +833,9 @@ let quotaLocked = false;
 function renderQuota() {
   quotaLocked = !!(state.auth && hasQuota() && quotaLeft() <= 0);
   const el = $('#quotaLeft'), low = hasQuota() && quotaLeft() <= Math.max(1, usage.limits.dailyMessages * 0.1);
-  el.hidden = !hasQuota();
+  // 남은 횟수는 한 곳에만(H6): 결과가 있으면 결과 위쪽 표시를 쓰고, 버튼 아래는 결과가 없을 때나 횟수를 다 써서 버튼이 잠겼을 때만
+  const tagShown = !!$('#planQuotaTag');
+  el.hidden = !hasQuota() || (tagShown && !quotaLocked);
   if (hasQuota()) el.textContent = quotaLocked ? '🐾 ' + QUOTA_EMPTY_MSG : `🐾 오늘 남은 산책 판단 ${quotaText()}`;
   el.classList.toggle('warn', low);
   const tag = $('#planQuotaTag'); if (tag) { tag.hidden = !hasQuota(); if (hasQuota()) tag.textContent = `오늘 남은 산책 판단 ${quotaText()}`; tag.classList.toggle('warn', low); }

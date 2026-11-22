@@ -48,7 +48,7 @@ function makeContext(apiImpl) {
 }
 const FOOTER = `
 globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName, characterCandidates, characterFor, comboLabel, caricatureSrc, BREEDS, drawAvatarPicker, setDraft: d => { dogDraft = d; }, getDraft: () => dogDraft, agentSay, applyTheme,
-  setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel, isArtId, artEntry, pickerCands, saveAvatar, draftBody, setOptions: o => { dogOptions = o; }, LEGACY_BREEDS, tcDist, AGE_HINT };`;
+  setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel, isArtId, artEntry, pickerCands, saveAvatar, draftBody, setOptions: o => { dogOptions = o; }, LEGACY_BREEDS, tcDist, AGE_HINT, setUsage: u => { usage = u; } };`;
 const load = apiImpl => { const ctx = makeContext(apiImpl); vm.runInContext(SRC.replace(/^import .*$/gm, '') + FOOTER, ctx, { filename: 'app.js' }); return ctx.__app; };
 
 const DOGS = [{ id: 1, name: '앤비', size: 'small', age: 'adult', flatFace: false, thickCoat: true, selected: true, care: { summary: '알맞은 산책 약 30분 · 28℃ 넘으면 조심', maxC: 28, minutes: 30, traits: [{ icon: '🧊', key: 'small', note: '소형견은 …' }] } },
@@ -351,4 +351,17 @@ test('#37 결측 거리·나이 안내: 거리 모르면 표시 안 함, "바로
   assert.match(app.AGE_HINT.adult, /^1~6살/); assert.match(app.AGE_HINT.senior, /^7살부터/);
   const src = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8') + fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /월령|1~7살|7살 이상/);
+});
+
+test('H6 남은 산책 판단은 한 곳에만: 결과가 없거나 횟수를 다 써 버튼이 잠기면 버튼 아래, 결과가 있으면 결과 위쪽만', () => {
+  const ctx = makeContext(async () => ({})), orig = ctx.document.querySelector, quota = makeNode(), btn = makeNode(); let tag = null;
+  ctx.document.querySelector = s => s === '#quotaLeft' ? quota : s === '#planQuotaTag' ? tag : s === '#btnPlan' ? btn : orig(s);
+  vm.runInContext(SRC.replace(/^import .*$/gm, '') + FOOTER, ctx, { filename: 'app.js' }); const app = ctx.__app;
+  const lim = { dailyMessages: 100 };
+  app.setUsage({ limits: lim, today: { messages: 2 }, session: 0 }); app.renderQuota();
+  assert.equal(quota.hidden, false, '결과가 없으면 버튼 아래에 보인다'); assert.match(quota.textContent, /오늘 남은 산책 판단 98회/);
+  tag = makeNode(); app.renderQuota();
+  assert.equal(quota.hidden, true, '결과가 있으면 버튼 아래는 숨기고'); assert.equal(tag.hidden, false, '결과 위쪽에만 보인다');
+  app.setUsage({ limits: lim, today: { messages: 100 }, session: 0 }); app.renderQuota();
+  assert.equal(quota.hidden, false, '횟수를 다 써 버튼이 잠기면 버튼 아래 안내가 다시 보인다'); assert.equal(btn.disabled, true);
 });
