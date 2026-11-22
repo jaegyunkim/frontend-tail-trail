@@ -83,3 +83,10 @@ test('강아지 캐릭터: 종류 5개 × 모양 5개 SVG 25장이 있고, 고�
   const js = read('app.js'); assert.match(js, /id="dogAvatar"|#dogAvatar/); assert.match(read('index.html'), /id="dogAvatar"/);
   assert.match(js, /get avatar\(\) \{ return `\$\{kindOf\(this\)\}-\$\{dogDraft\.variant\}`; \}/);
 });
+test('주변 탭 종류 6개는 한 줄(줄바꿈 없음), 넘치면 가로 스크롤·고른 칩 보이기', () => {
+  const h = read('index.html'), c = read('style.css'), a = read('app.js');
+  assert.match(h, /<div id="nearChips" class="chips near-row" role="radiogroup"/);
+  assert.match(c, /\.chips\.near-row \{[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto;[^}]*scrollbar-width: none;/);
+  assert.match(c, /\.chips\.near-row \.chip \{[^}]*flex: 1 0 auto;[^}]*min-height: 44px;/);
+  assert.match(a, /showPickedChip\(\$\('#nearChips'\)\)/);
+});

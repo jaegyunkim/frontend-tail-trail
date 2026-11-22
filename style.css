@@ -965,3 +965,10 @@ dialog::backdrop { background: var(--backdrop); }
 .dog-ava { position: relative; }
 .dog-ava > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .dog-ava .ava-badge { z-index: 1; }
+/* 주변 탭 '가까운 곳' 종류 6개: 항상 한 줄(1×6). 들어가면 칸을 고르게 채우고, 안 들어가면 그 줄만 가로 스크롤 */
+.chips.near-row { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 0 4px; margin: 0 0 12px; }
+.chips.near-row::-webkit-scrollbar { display: none; }
+.chips.near-row .chip { flex: 1 0 auto; justify-content: center; gap: 4px; min-height: 44px; padding: 6px 10px; font-size: 14px; white-space: nowrap; scroll-snap-align: start; }
+.chips.near-row .chip-emo { font-size: 16px; }
+.chips.near-row.is-scroll:not(.at-end) { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+@media (max-width: 400px) { .chips.near-row { gap: 5px; } .chips.near-row .chip { padding: 6px 9px; font-size: 13.5px; } .chips.near-row .chip-emo { font-size: 15px; } }

@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-4';
+import { mountShelter } from './shelter.js?v=0.1.6-5';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -328,9 +328,22 @@ async function originCoords() {
   if (/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(v)) return v;
   const g = await api('/v1/geocode?q=' + encodeURIComponent(v)); return `${g.lat},${g.lon}`;
 }
+/** 한 줄 칩: 다 안 들어가 가로로 밀릴 때 고른 칩이 보이게 그 줄만 옆으로 스크롤(화면 세로 위치는 그대로) */
+function showPickedChip(row) {
+  if (!row?.querySelector) return;
+  const on = row.querySelector('[aria-checked="true"]'), over = row.scrollWidth > row.clientWidth + 1;
+  row.classList?.toggle('is-scroll', over);
+  row.onscroll = () => row.classList?.toggle('at-end', row.scrollLeft + row.clientWidth >= row.scrollWidth - 2);
+  row.onscroll();
+  if (!on || !over) return;
+  const left = on.offsetLeft - row.offsetLeft, right = left + on.offsetWidth;
+  if (left < row.scrollLeft || right > row.scrollLeft + row.clientWidth) row.scrollTo?.({ left: Math.max(0, left - (row.clientWidth - on.offsetWidth) / 2), behavior: 'smooth' });
+}
+addEventListener('resize', () => showPickedChip(document.querySelector('#nearChips')));
 async function loadNearby(type = nearType) {
   nearType = type; const el = $('#nearList');
   chips($('#nearChips'), NEAR_TYPES, nearType, v => loadNearby(v ?? nearType));
+  showPickedChip($('#nearChips'));
   el.innerHTML = '<p class="loading">가까운 곳을 찾는 중…</p>';
   try {
     const c = await originCoords();
