@@ -779,7 +779,6 @@ label > .clearable { margin-top: 6px; }
 .diary-form .row.diary-trio input,.diary-form .row.diary-trio select{width:100%;box-sizing:border-box;min-width:0}
 .time-pick{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .diary-form .time-pick select{height:48px;min-height:48px;-webkit-appearance:none;appearance:none;background: var(--card);padding:0 10px;border:1.5px solid var(--hair);border-radius:var(--r-sm);font:inherit;color:inherit;text-align:center}
-.diary-poop{margin:0 0 14px}
 @media (max-width:560px){.diary-form .row.diary-trio{grid-template-columns:1fr 1fr}.diary-form .row.diary-trio>.field:last-child{grid-column:1 / -1}}
 
 /* =====================================================================================
@@ -972,3 +971,11 @@ dialog::backdrop { background: var(--backdrop); }
 .chips.near-row .chip-emo { font-size: 16px; }
 .chips.near-row.is-scroll:not(.at-end) { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
 @media (max-width: 400px) { .chips.near-row { gap: 5px; } .chips.near-row .chip { padding: 6px 9px; font-size: 13.5px; } .chips.near-row .chip-emo { font-size: 15px; } }
+/* 꼬리일기: 배변 체크를 기분 칩과 같은 줄 오른쪽에 작은 칩으로(별도 카드 없이). 좁으면 자연스럽게 다음 줄로 */
+.mood-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mood-row > #diaryMood { flex: 0 1 auto; margin: 0; gap: 6px; }
+.poop-chip { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 14px 6px 10px; border: 1.5px solid var(--hair); border-radius: var(--r-pill); background: var(--card); color: var(--ink2); font-size: 15px; font-weight: 600; cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+.poop-chip input { -webkit-appearance: auto; appearance: auto; width: 20px !important; height: 20px !important; min-height: 0 !important; margin: 0; padding: 0; flex: none; accent-color: var(--accent); }
+.poop-chip:has(input:checked) { border-color: var(--brand); background: var(--accent-soft); color: var(--accent-text); font-weight: 800; }
+.poop-chip:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (max-width: 400px) { .mood-row > #diaryMood { display: contents; } .poop-chip { margin-left: 0; } }

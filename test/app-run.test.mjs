@@ -135,3 +135,9 @@ test('에이전트 말풍선·신호등·화면 모드', () => {
   assert.doesNotThrow(() => { app.applyTheme('dark'); app.applyTheme('auto'); });
   assert.doesNotThrow(() => app.renderPlan({ id: 'x', plan: { ...PLAN, walk: { ...PLAN.walk, gate: 'indoor' } } }));
 });
+test('꼬리일기 배변: 기분 칩과 같은 줄의 작은 체크(별도 카드 없음), 저장 값은 그대로 poop: 체크 여부', () => {
+  const h = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8'), src = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(h, /<div class="mood-row"><div id="diaryMood"[^>]*><\/div><label class="poop-chip"><input id="diaryPoop" type="checkbox">/);
+  assert.doesNotMatch(h, /diary-poop/);
+  assert.match(src, /poop: \$\('#diaryPoop'\)\.checked/);
+});
