@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-21';
+import { mountShelter } from './shelter.js?v=0.1.6-22';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -64,14 +64,14 @@ const BREEDS = {
   // 그림 파일은 소문자·숫자·하이픈 이름(예: saint-bernard-puppy). 아래는 그림이 생기면 art 에 이름만 넣으면 바로 후보가 된다(지금은 그림이 없어 건너뜀)
   saint_bernard:  { size: 'large',  brachy: true,  doubleCoat: true,  label: '세인트버나드', art: ['saint-bernard'], ages: { puppy: ['saint-bernard-puppy'], senior: ['saint-bernard-senior'] } },
   husky:          { size: 'large',  brachy: false, doubleCoat: true,  label: '허스키',       art: ['husky'], ages: { puppy: ['husky-puppy'], senior: ['husky-senior'] } },
-  samoyed:        { size: 'large',  brachy: false, doubleCoat: true,  label: '사모예드',     art: [], ages: {} },
+  samoyed:        { size: 'large',  brachy: false, doubleCoat: true,  label: '사모예드',     art: ['samoyed'], ages: { puppy: ['samoyed-puppy'], senior: ['samoyed-senior'] } },
   chow_chow:      { size: 'medium', brachy: true,  doubleCoat: true,  label: '차우차우',     art: ['chow-chow'], ages: { puppy: ['chow-chow-puppy'], senior: ['chow-chow-senior'] } },
-  jindo:          { size: 'medium', brachy: false, doubleCoat: true,  label: '진돗개',       art: [], ages: {} },
+  jindo:          { size: 'medium', brachy: false, doubleCoat: true,  label: '진돗개',       art: ['jindo'], ages: { puppy: ['jindo-puppy'], senior: ['jindo-senior'] } },
   shiba:          { size: 'medium', brachy: false, doubleCoat: true,  label: '시바',         art: ['shiba'], ages: { puppy: ['shiba-puppy'], senior: ['shiba-senior'] } },
   french_bulldog: { size: 'small',  brachy: true,  doubleCoat: false, label: '프렌치불독',   art: ['french-bulldog'], ages: { puppy: ['french-bulldog-puppy'], senior: ['french-bulldog-senior'] } },
   pug:            { size: 'small',  brachy: true,  doubleCoat: false, label: '퍼그',         art: ['pug'], ages: { puppy: ['pug-puppy'], senior: ['pug-senior'] } },
   shih_tzu:       { size: 'small',  brachy: true,  doubleCoat: true,  label: '시츄',         art: ['shih-tzu'], ages: { puppy: ['shih-tzu-puppy'], senior: ['shih-tzu-senior'] } },
-  chihuahua:      { size: 'small',  brachy: false, doubleCoat: false, label: '치와와',       art: [], ages: {} },
+  chihuahua:      { size: 'small',  brachy: false, doubleCoat: false, label: '치와와',       art: [], ages: { puppy: ['chihuahua-puppy'], senior: ['chihuahua-senior'] } }, // 성견 그림(chihuahua)은 다음 배치: 오면 art 에 이름만
   dachshund:      { size: 'small',  brachy: false, doubleCoat: false, label: '닥스훈트',     art: [], ages: {} }
 };
 // 옛 형식 {종류}-{1~5} 해석 고정(#34): 그림 이름 저장(#26)이 배포될 때의 운영 후보 표(97d1326~d4185b8, 0.1.6-17~19) 그대로.
