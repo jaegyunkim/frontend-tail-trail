@@ -325,8 +325,18 @@ $('#btnEmergency').onclick = async () => {
 
 // ---------- 꼬리일기(산책 한 줄 기록) ----------
 let diaryMood = null;
+/** 산책 시간: "시간 | 분" 고르기(분은 5분 단위). 서버에는 분으로 보낸다(1~300분, 0이면 비움) */
+const DIARY_DEFAULT_MIN = 30;
+function setDiaryMinutes(total = DIARY_DEFAULT_MIN) {
+  const t = Math.min(300, Math.max(0, Math.round((Number(total) || 0) / 5) * 5));
+  $('#diaryHours').value = String(Math.floor(t / 60)); $('#diaryMins').value = String(t % 60);
+}
+const diaryMinutes = () => Number($('#diaryHours').value || 0) * 60 + Number($('#diaryMins').value || 0);
+$('#diaryHours').innerHTML = [0, 1, 2, 3, 4, 5].map(h => `<option value="${h}">${h}시간</option>`).join('');
+$('#diaryMins').innerHTML = Array.from({ length: 12 }, (_, i) => i * 5).map(m => `<option value="${m}">${m}분</option>`).join('');
+setDiaryMinutes();
 function prefillDiary({ place = '', minutes = '' } = {}) {
-  $('#diaryPlace').value = place ?? ''; $('#diaryMinutes').value = minutes || ''; go('diary'); $('#diaryNote').focus();
+  $('#diaryPlace').value = place ?? ''; setDiaryMinutes(minutes || DIARY_DEFAULT_MIN); go('diary'); $('#diaryNote').focus();
 }
 async function loadDiary() {
   $('#diaryDate').value ||= kstDate(0); $('#diaryDate').max = kstDate(0);
@@ -344,9 +354,10 @@ async function loadDiary() {
 }
 $('#diaryForm').onsubmit = async e => {
   e.preventDefault();
+  if (diaryMinutes() > 300) { toast('산책 시간은 5시간까지 남길 수 있어요'); return; }
   try {
-    await api('/v1/me/diary', { method: 'POST', body: JSON.stringify({ planId: lastPlan?.id, dogName: $('#diaryDog').value, placeName: $('#diaryPlace').value.trim(), date: $('#diaryDate').value, minutes: $('#diaryMinutes').value, mood: diaryMood || undefined, poop: $('#diaryPoop').checked, note: $('#diaryNote').value.trim() }) });
-    $('#diaryForm').reset(); syncClearButtons(); diaryMood = null; $('#diaryDate').value = kstDate(0); toast('꼬리일기에 남겼어요'); loadDiary();
+    await api('/v1/me/diary', { method: 'POST', body: JSON.stringify({ planId: lastPlan?.id, dogName: $('#diaryDog').value, placeName: $('#diaryPlace').value.trim(), date: $('#diaryDate').value, minutes: diaryMinutes() || null, mood: diaryMood || undefined, poop: $('#diaryPoop').checked, note: $('#diaryNote').value.trim() }) });
+    $('#diaryForm').reset(); syncClearButtons(); diaryMood = null; $('#diaryDate').value = kstDate(0); setDiaryMinutes(); toast('꼬리일기에 남겼어요'); loadDiary();
   } catch (err) { toast(errText(err)); }
 };
 
@@ -559,13 +570,15 @@ function renderQuota() {
   $('#planForm').classList.toggle('token-empty', quotaLocked);
 }
 /** 로그아웃 확인창: 이용 조건(로그인 횟수·이용 시간·자동 로그아웃·하루 AI 사용량)을 계정 한도 값으로 짧게 */
-/** 로그아웃 확인창: 규칙 설명 없이 남은 횟수만 한 줄로(모르면 감사 인사만) */
-function logoutText() {
+/** 남은 횟수(아는 것만): 로그아웃 확인창·계정 설정이 같이 쓴다 */
+function remainParts() {
   const lq = loginQuota(), left = quotaLeft(), parts = [];
   if (lq?.left != null) parts.push(`남은 로그인 ${fmt(lq.left)}번`);
   if (left != null) parts.push(`오늘 남은 산책 판단 ${fmt(left)}번`);
-  return '이용해 주셔서 감사합니다.' + (parts.length ? '\n' + parts.join(' · ') : '');
+  return parts;
 }
+/** 로그아웃 확인창: 규칙 설명 없이 남은 횟수만 한 줄로(모르면 감사 인사만) */
+function logoutText() { const parts = remainParts(); return '이용해 주셔서 감사합니다.' + (parts.length ? '\n' + parts.join(' · ') : ''); }
 function applyAiLock(ai) {
   aiLocked = ai && ai.available === false && state.auth?.user?.role !== 'admin';
   $('#aiLock').hidden = !aiLocked; if (aiLocked) { $('#aiLockMsg').textContent = ai.message || '지금은 AI 이용량이 모두 소진되어 잠시 이용할 수 없어요.'; hideTip(); }
@@ -574,16 +587,9 @@ function applyAiLock(ai) {
 async function openSettings() {
   await refreshUsage();
   const a = state.auth; if (!a) return;
-  $('#accountInfo').textContent = `${a.user.displayName}(${a.user.loginId}) · ${ROLE_LABEL[a.user.role] ?? a.user.role} · 남은 시간 ${Math.floor(remaining() / 60)}분 ${remaining() % 60}초`;
-  $('#usageInfo').textContent = usage ? [
-    `이번 로그인 이용 시간: ${usage.limits.sessionMinutes}분`,
-    `이번 로그인에서 한 질문: ${fmt(usage.session)}건 (최대 ${fmt(usage.limits.sessionMessages)}건)`,
-    `오늘 한 질문: ${fmt(usage.today.messages)}건 (하루 최대 ${fmt(usage.limits.dailyMessages)}건)`,
-    loginQuota() ? `최근 24시간 로그인: ${fmt(loginQuota().used)}번 (24시간에 최대 ${fmt(loginQuota().limit)}번)` : `로그인: 24시간에 최대 ${fmt(usage.limits.dailySessions)}번`,
-    hasQuota() ? `오늘 남은 산책 판단: ${quotaText()}` : '',
-    '※ 산책 판단 1번이 질문 1건이에요. 공공 데이터(기상청·에어코리아·카카오)를 불러오는 횟수를 지키기 위한 한도예요.',
-    DAY_NOTE
-  ].filter(Boolean).join('\n') : '사용량을 확인할 수 없어요.';
+  $('#accountInfo').textContent = `${a.user.displayName}(${a.user.loginId}) · ${ROLE_LABEL[a.user.role] ?? a.user.role}`;
+  // 로그아웃 확인창과 같은 말투: 남은 것만 한 줄 + 꼭 필요한 안내 한 줄
+  $('#usageInfo').textContent = [`남은 시간 ${Math.floor(remaining() / 60)}분`, ...remainParts()].join(' · ') + '\n산책 판단 횟수는 매일 밤 12시에 다시 채워져요.';
   $('#settingsDialog').showModal();
 }
 $('#btnSettings').onclick = openSettings;

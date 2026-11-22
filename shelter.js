@@ -39,7 +39,8 @@ export function mountShelter(root, { api, origin }) {
   function card(d) {
     const article = el('article', 'shelter-card'), body = el('div', 'shelter-card-body');
     const breed = d.breed || '품종 미확인', urls = [...new Set([d.photo, ...(d.photos || [])].map(photoURL).filter(Boolean))];
-    article.append(photo(urls[0], breed), body);
+    const thumb = el('div', 'shelter-thumb'); thumb.append(photo(urls[0], breed)); // 목록형: 왼쪽 정사각 대표 사진 1장
+    article.append(thumb, body);
     body.append(el('span', 'shelter-badge', d.phase === 'ended' ? (d.processState || '보호 종료') : d.phase === 'adoptable' ? '입양 문의 가능' : '보호 중 · 공고'), el('h3', '', breed), el('p', '', [d.sex, d.age, d.weight, d.color].filter(Boolean).join(' · ')));
     if (d.mark) body.append(el('p', '', d.mark));
     const center = d.center || {};
@@ -89,7 +90,7 @@ export function mountShelter(root, { api, origin }) {
     selectFilter('state','보호 상태',[['protect','보호 중'],['ended','가족을 만난 아이']]); selectFilter('sex','성별',[['','전체'],['M','수컷'],['F','암컷']]);
     selectFilter('sort','정렬',[['new','최신 공고순'],['ending','공고 종료일순']]); selectFilter('center','보호센터',[['','모든 센터']]);
     controls.q = el('input'); controls.q.type = 'search'; controls.q.maxLength = 30; controls.q.placeholder = '품종, 발견 장소, 공고번호';
-    const submit = el('button','','검색'); submit.type = 'submit'; form.append(field('검색어',controls.q), submit);
+    const submit = el('button','shelter-submit','검색'); submit.type = 'submit'; form.append(field('검색어',controls.q), submit);
     form.onsubmit = e => { e.preventDefault(); return apply(); }; form.hidden = true;
     const guide = el('details','shelter-guide'), guideSlot = el('div','','안내를 불러오는 중이에요.'); guide.append(el('summary','','입양 절차 · 잃어버린 반려견 찾기'),guideSlot);
     const official = el('aside','shelter-source');

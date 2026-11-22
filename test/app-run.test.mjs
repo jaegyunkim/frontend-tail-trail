@@ -103,3 +103,11 @@ test('로그아웃 확인창 문구는 짧게(규칙 설명 없음)', () => {
   assert.ok(t.split('\n').length <= 2, t);
   assert.doesNotMatch(t, /15분|초기화|60분/);
 });
+test('꼬리일기 시간: 시간·분 고르기를 분으로 환산(기본 30분), 기분 뒤에 배변', () => {
+  const src = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8'), h = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(src, /const DIARY_DEFAULT_MIN = 30;/);
+  assert.match(src, /Number\(\$\('#diaryHours'\)\.value \|\| 0\) \* 60 \+ Number\(\$\('#diaryMins'\)\.value \|\| 0\)/);
+  assert.match(src, /minutes: diaryMinutes\(\) \|\| null/);
+  assert.ok(h.indexOf('id="diaryMood"') < h.indexOf('id="diaryPoop"'));
+  assert.match(h, /class="row diary-trio">.*id="diaryDog".*id="diaryDate".*id="diaryHours"/);
+});

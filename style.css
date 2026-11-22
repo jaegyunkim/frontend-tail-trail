@@ -754,3 +754,30 @@ label > .clearable { margin-top: 6px; }
 .name-check[data-kind="bad"]{color:var(--bad,#B23A3A)}
 .name-check[data-kind="ok"]{color:#2F6B4F}
 #dogName[aria-invalid="true"]{border-color:var(--bad,#B23A3A)}
+/* 보호소 검색: 2열×3행(보호 상태·성별 / 정렬·보호센터 / 검색어·검색), 아주 좁으면 1열 */
+#shelterRoot .shelter-filters:not([hidden]){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;align-items:end}
+#shelterRoot .shelter-filters .shelter-field select,#shelterRoot .shelter-filters .shelter-field input{width:100%;box-sizing:border-box}
+#shelterRoot .shelter-filters .shelter-submit{width:100%;margin-bottom:7px;background:var(--accent,#2F6B4F);color:#fff;border-color:transparent}
+@media (max-width:340px){#shelterRoot .shelter-filters:not([hidden]){grid-template-columns:1fr}}
+/* 보호소 공고: 목록형(왼쪽 둥근 정사각 사진 + 오른쪽 정보), 우리 아이 카드와 같은 결 */
+#shelterRoot .shelter-list{gap:10px}
+#shelterRoot .shelter-card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:14px;align-items:start;padding:14px;border-radius:var(--r,16px);border:0;box-shadow:var(--shadow)}
+#shelterRoot .shelter-thumb{width:112px;aspect-ratio:1;border-radius:18px;overflow:hidden;background:var(--soft,#EEF2EE)}
+#shelterRoot .shelter-thumb .shelter-photo{width:100%;height:100%;max-height:none;object-fit:cover;border-radius:0;display:block}
+#shelterRoot .shelter-thumb .shelter-placeholder{height:100%;display:grid;place-items:center;padding:8px;font-size:12px;box-sizing:border-box}
+#shelterRoot .shelter-card-body{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+#shelterRoot .shelter-card-body h3{margin:4px 0 0;font-size:17px}
+#shelterRoot .shelter-card-body>p{margin:0;font-size:14px;line-height:1.45;color:var(--ink2)}
+#shelterRoot .shelter-card-body>small{color:var(--mute);font-size:12.5px}
+#shelterRoot .shelter-card-body .shelter-details{width:100%;margin-top:2px}
+#shelterRoot .shelter-card-body .shelter-details summary{min-height:36px;padding-block:6px;font-size:14px}
+#shelterRoot .shelter-details .shelter-photo{width:100%;max-height:225px;object-fit:contain;margin-top:8px}
+@media (max-width:420px){#shelterRoot .shelter-card{grid-template-columns:84px minmax(0,1fr);gap:12px;padding:12px}#shelterRoot .shelter-thumb{width:84px;border-radius:14px}#shelterRoot .shelter-card-body h3{font-size:16px}#shelterRoot .shelter-card-body>p{font-size:13.5px}}
+/* 꼬리일기: 아이·날짜·시간 한 줄, 시간은 "시간 | 분" 고르기 */
+.diary-form .row.diary-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.diary-form .row.diary-trio .field{min-width:0;margin:0}
+.diary-form .row.diary-trio input,.diary-form .row.diary-trio select{width:100%;box-sizing:border-box;min-width:0}
+.time-pick{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.diary-form .time-pick select{height:48px;min-height:48px;-webkit-appearance:none;appearance:none;background:#fff;padding:0 10px;border:1.5px solid var(--hair);border-radius:var(--r-sm,12px);font:inherit;color:inherit;text-align:center}
+.diary-poop{margin:0 0 14px}
+@media (max-width:560px){.diary-form .row.diary-trio{grid-template-columns:1fr 1fr}.diary-form .row.diary-trio>.field:last-child{grid-column:1 / -1}}

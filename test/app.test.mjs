@@ -29,7 +29,7 @@ test('인허가 확인 표시·미확인 표시·반려동물 동반 조건·약
   assert.match(a, /영업시간·휴무와 반려견 출입은 확인하지 못한 정보라/);
 });
 test('노면 온도는 추정값이라고 항상 밝힌다', () => assert.match(read('app.js'), /기온·하늘 상태로 계산, 실측 아님/));
-test('꼬리일기: 장소·시간·기분·배변·한 줄, 사진·정확한 위치는 받지 않는다', () => { const h = read('index.html'); for (const id of ['diaryPlace', 'diaryDog', 'diaryDate', 'diaryMinutes', 'diaryPoop', 'diaryMood', 'diaryNote']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /type="file"/); assert.match(h, /사진과 정확한 위치는 저장하지 않아요/); });
+test('꼬리일기: 장소·시간·기분·배변·한 줄, 사진·정확한 위치는 받지 않는다', () => { const h = read('index.html'); for (const id of ['diaryPlace', 'diaryDog', 'diaryDate', 'diaryHours', 'diaryMins', 'diaryPoop', 'diaryMood', 'diaryNote']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /type="file"/); assert.match(h, /사진과 정확한 위치는 저장하지 않아요/); });
 test('우리 아이: 크기·나이·단두종·털만 받는다(견종·사진 없음)', () => { const h = read('index.html'); for (const id of ['dogName', 'dogSize', 'dogAge', 'dogFlat', 'dogCoat', 'dogList', 'btnDogAdd', 'btnDogFirst', 'dogCancel', 'dogSubmit', 'dogWelcome', 'dogFull', 'dogDialog', 'dogDelDialog', 'dogLive']) assert.ok(h.includes(`id="${id}"`), id); assert.doesNotMatch(h, /견종 선택|type="file"/); });
 test('화면 문구는 해요체(합니다·십시오체가 남지 않음)', () => { for (const f of ['index.html', 'register.html', 'app.js', 'register.js', 'admin.js', 'auth.js', 'role-policy.js']) assert.doesNotMatch(read(f).replace(/감사합니다/g, ''), /[가-힣](습니다|십시오|됩니다|합니다|입니다)(?![가-힣])/, f); });
 test('머리줄 로고·이름을 누르면 홈(오늘 탭)으로', () => { assert.match(read('index.html'), /<a class="brand" id="brandHome" href="\.\/"/); assert.match(read('app.js'), /\$\('#brandHome'\)\.onclick = e => \{ e\.preventDefault\(\); go\('plan'\); \}/); });
@@ -71,7 +71,7 @@ test('관리자 화면이 부르는 /v1/admin 경로는 모두 백엔드 라우�
 });
 test('글을 쓰는 모든 입력칸에 ⓧ(동그라미 안 x) 전체 지우기 버튼', () => {
   const h = read('index.html'), r = read('register.html');
-  for (const id of ['loginId', 'loginPw', 'pwCur', 'pwNew', 'pwNew2', 'placeInput', 'dogName', 'diaryPlace', 'diaryMinutes', 'diaryNote', 'opinionText']) {
+  for (const id of ['loginId', 'loginPw', 'pwCur', 'pwNew', 'pwNew2', 'placeInput', 'dogName', 'diaryPlace', 'diaryNote', 'opinionText']) {
     assert.match(h, new RegExp(`<span class="clearable[^"]*"><(?:input|textarea) id="${id}"[^>]*data-clearable[^>]*>(?:[^<]*</textarea>)?<button type="button" class="clear-btn"[^>]*hidden><svg[^>]*><circle cx="10" cy="10" r="9"/><path d="M7 7l6 6M13 7l-6 6"/>`), id);
   }
   assert.equal((r.match(/class="clear-btn"/g) || []).length, 2); assert.match(read('register.js'), /input\[data-clearable\]/);
