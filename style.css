@@ -1010,22 +1010,12 @@ dialog::backdrop { background: var(--backdrop); }
 .places .pl-name a.ext::after { content: ' ↗'; font-size: 12px; color: var(--mute); }
 .places .pl-name a.ext:hover, .places .pl-name a.ext:focus-visible { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
 .places .pl-name a.ext:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.places .pl-dist { justify-self: end; font-size: 15px; font-weight: 800; color: var(--accent-text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.places .pl-dist { font-size: 15px; font-weight: 800; color: var(--accent-text); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .places .pl-badges { display: flex; flex-wrap: wrap; gap: 4px; }
 .places .pl-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--r-pill); background: var(--paper); border: 1px solid var(--hair); color: var(--ink2); font-size: 12.5px; font-weight: 600; line-height: 1.5; }
 .places .pl-badge.lic { background: var(--accent-soft); border-color: transparent; color: var(--accent-text); }
 .places .pl-badge.open24 { background: var(--danger-soft); border-color: transparent; color: var(--danger-text); }
 .places .pl-badge.unk { color: var(--mute); }
-.places .pl-addr { grid-area: addr; margin: 0; font-size: 14px; color: var(--mute); line-height: 1.45; }
-.places li.place .pet-cond { grid-area: pet; margin: 0; }
-.places li.place .links { grid-area: links; display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
-.places li.place .links .link-btn { flex: 1 1 0; justify-content: center; min-height: 44px; padding: 0 10px; font-size: 14px; border-width: 1.5px; white-space: nowrap; }
-@media (min-width: 600px) {
-  .places li.place { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "name dist links" "badge dist links" "addr dist links" "pet pet pet"; row-gap: 4px; }
-  .places li.place .links { margin: 0; flex-wrap: nowrap; }
-  .places li.place .links .link-btn { flex: none; min-height: 44px; padding: 0 10px; font-size: 13.5px; }
-  .places .pl-dist { align-self: center; }
-}
 /* 오늘의 맞춤 산책 코스(오늘 탭, 출발지 아래): 20px 카드 · 에메랄드(좋음)·노랑(주의)·코랄(위험) 왼쪽 띠 · 캐리커처 */
 .today-course { margin: 2px 0 18px; }
 .tc-card { position: relative; background: var(--card); border: 1px solid var(--hair); border-left: 6px solid var(--brand); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; transition: opacity .2s; }
@@ -1067,24 +1057,17 @@ dialog::backdrop { background: var(--backdrop); }
 @media (max-width: 400px) { .tc-card { padding: 14px 12px; } .tc-title h3 { font-size: 16.5px; } .tc-head .tag { display: none; } .tc-rank { width: 30px; height: 30px; font-size: 15px; } .tc-nudge { flex-wrap: wrap; } .tc-nudge .ghost { width: 100%; } }
 .tc-say { margin: 8px 0 0; padding: 10px 12px; border-radius: var(--r-sm); background: var(--accent-soft); color: var(--accent-text); font-size: 14px; font-weight: 700; line-height: 1.5; }
 .tc-card.caution .tc-say { background: var(--caution-soft, var(--soft)); color: var(--caution-text, var(--ink)); } .tc-card.indoor .tc-say { background: var(--coral-soft); color: var(--coral-text); }
-.tc-body .links { display: flex; flex-wrap: wrap; gap: 6px; }
-.tc-body .links .link-btn { min-height: 36px; padding: 4px 10px; font-size: 13px; }
 .places .pl-addr { margin: 0; font-size: 14px; color: var(--mute); line-height: 1.45; }
 .places li.place .pet-cond { margin: 0; }
-.places li.place .links .link-btn { border-width: 1.5px; white-space: nowrap; }
 /* 장소 카드 v2: 모든 폭에서 [왼쪽 이름·배지·주소 | 오른쪽 거리 + 버튼 세로(같은 너비)] — 오른쪽 빈 여백을 없애고 카드 높이를 줄인다 */
-.places li.place { display: flex; align-items: flex-start; gap: 12px; padding: 12px 12px 12px 16px; }
+.places li.place { padding: 12px 12px 12px 16px; } /* 배치는 공통 .split */
 .places li.place .pl-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .places li.place .pl-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.places li.place .pl-side { flex: none; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
 .places li.place .pl-dist { text-align: right; line-height: 1.3; padding: 1px 2px 0; }
-.places li.place .links { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px; margin: 0; }
-.places li.place .links .link-btn { flex: none; width: 100%; min-height: 40px; height: 40px; padding: 0 12px; font-size: 14px; justify-content: space-between; gap: 6px; }
-.places li.place .links:not(:has(> :nth-child(3))) .link-btn { min-height: 44px; height: 44px; }
-@media (max-width: 360px) { .places li.place { gap: 10px; padding: 12px 10px 12px 14px; } .places li.place .links .link-btn { padding: 0 9px; font-size: 13.5px; } }
+@media (max-width: 360px) { .places li.place { padding: 12px 10px 12px 14px; } }
 /* 버튼 3개(전화 포함)일 때: 간격·위아래 여백을 줄여 카드가 덜 길어지게(버튼 40px 유지) */
 .places li.place:has(.links > :nth-child(3)) { padding-top: 10px; padding-bottom: 10px; }
-.places li.place:has(.links > :nth-child(3)) .pl-side, .places li.place .links:has(> :nth-child(3)) { gap: 4px; }
+.places li.place:has(.links > :nth-child(3)) .pl-side { gap: 4px; }
 .places li.place:has(.links > :nth-child(3)) .pl-dist { line-height: 1.15; }
 /* 화면에서만 숨김(스크린리더는 읽음) */
 .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -1112,4 +1095,34 @@ dialog::backdrop { background: var(--backdrop); }
 @media (max-width: 479px) {
   #shelterRoot .shelter-filters:not([hidden]) { gap: 8px; }
   #shelterRoot .shelter-filters .shelter-field select { font-size: 15px; padding-left: 12px; padding-right: 28px; }
+}
+
+/* ===== 공통 2열 카드(.split): 장소 카드(#19 .places li.place)·맞춤 산책 코스 항목(#22 .tc-item) =====
+   [.split-main 왼쪽 정보 | .split-side 오른쪽 버튼 세로(같은 너비)]. 버튼 2개 44px, 3개 40px(+간격 축소)
+   넓은 화면 배치를 바꾸려면 아래 '넓은 화면 스위치' 한 곳만 고치면 두 카드가 함께 바뀐다 */
+.split { display: flex; align-items: flex-start; gap: 12px; }
+.split-main { flex: 1 1 auto; min-width: 0; }
+.split-side { flex: none; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.split-side .links { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px; margin: 0; }
+.split-side .links .link-btn { flex: none; width: 100%; min-height: 40px; height: 40px; padding: 0 12px; font-size: 14px; justify-content: space-between; gap: 6px; border-width: 1.5px; white-space: nowrap; }
+.split-side .links:not(:has(> :nth-child(3))) .link-btn { min-height: 44px; height: 44px; }
+.split-side .links:has(> :nth-child(3)) { gap: 4px; }
+@media (max-width: 360px) { .split { gap: 10px; } .split-side .links .link-btn { padding: 0 9px; font-size: 13.5px; } }
+/* 맞춤 산책 코스 항목: 코스명은 320px 에서 2줄까지 */
+.tc-item.split { gap: 10px; }
+.tc-item .tc-name b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.tc-item .tc-meta { margin-bottom: 4px; }
+@media (max-width: 400px) { .tc-item.split { gap: 8px; } .tc-item .tc-rank { width: 28px; height: 28px; font-size: 14px; } .tc-item .tc-why { font-size: 13.5px; } }
+/* 넓은 화면 스위치(오너 결정 대기): <html data-wide-actions="row"> 이면 600px 이상에서 두 카드 모두 버튼을 가로 한 줄로 */
+@media (min-width: 600px) {
+  :root[data-wide-actions="row"] .split { flex-wrap: wrap; }
+  :root[data-wide-actions="row"] .split-side { flex-direction: row; align-items: center; width: 100%; justify-content: flex-end; }
+  :root[data-wide-actions="row"] .split-side .links { flex-direction: row; }
+  :root[data-wide-actions="row"] .split-side .links .link-btn { width: auto; height: 44px; min-height: 44px; }
+}
+/* 좁은 화면(≤400px): 왼쪽 설명이 너무 좁아지지 않게 장식 아이콘만 숨김(버튼 글자·↗ 표시는 그대로) — 두 카드 공통 */
+@media (max-width: 400px) {
+  .split-side .links .link-btn { padding: 0 10px; font-size: 13.5px; justify-content: center; gap: 4px; }
+  .split-side .links .link-btn > span[aria-hidden] { display: none; }
+  .tc-item .tc-rank { display: none; }
 }

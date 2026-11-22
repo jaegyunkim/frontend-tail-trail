@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-12';
+import { mountShelter } from './shelter.js?v=0.1.6-13';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -256,11 +256,11 @@ function renderTodayCourse(r) {
       <div class="tc-head">${avatar(d, 'sm')}<div class="tc-title"><p class="tc-eyebrow">오늘의 맞춤 산책 코스</p><h3>${esc(d.name ?? '우리 아이')}${josaWa(d.name ?? '우리 아이')} ${esc(r.items[0].when)}</h3><small>${esc(r.origin?.label ?? '')} · ${esc(r.basisLabel)}</small></div><span class="tag ${gc}">${esc(w.gateName)}</span></div>
       ${wx ? `<div class="tc-wx" aria-label="출발지 지금 날씨">${wx}</div>` : ''}
       ${r.items[0].reasons?.[0] ? `<p class="tc-say">${esc(r.items[0].reasons[0])}</p>` : ''}
-      <ol class="tc-list">${r.items.map(it => `<li class="tc-item"><span class="tc-rank" aria-hidden="true">${TC_KIND[it.kind] ?? it.rank}</span><div class="tc-body">
+      <ol class="tc-list">${r.items.map(it => `<li class="tc-item split"><span class="tc-rank" aria-hidden="true">${TC_KIND[it.kind] ?? it.rank}</span><div class="tc-body split-main">
         <div class="tc-name"><b>${esc(it.name)}</b><small class="tc-src">${esc(it.source)}</small></div>
         <p class="tc-meta"><span>⏱ ${it.minutes}분</span><span>📏 ${it.routeKm}km</span><span>📍 ${tcDist(it.distanceKm)}</span>${it.mode === 'ride' ? '<span>🚗 차로 이동</span>' : ''}</p>
         ${it.reasons[0] && it.reasons[0] !== r.items[0].reasons[0] ? `<p class="tc-why">${esc(it.reasons[0])}</p>` : ''}${it.reasons[1] ? `<p class="tc-why sub">${esc(it.reasons[1])}</p>` : ''}
-        <div class="links">${tcLinks(it)}<a class="link-btn" href="#" data-rec-diary-item="${it.rank}"><span aria-hidden="true">✍️</span>다녀왔어요</a></div></div></li>`).join('')}</ol>
+        </div><div class="split-side"><div class="links">${tcLinks(it)}<a class="link-btn" href="#" data-rec-diary-item="${it.rank}"><span aria-hidden="true">✍️</span>다녀왔어요</a></div></div></li>`).join('')}</ol>
       ${nudge}
       <p class="tc-foot">${esc(r.quota?.note ?? '')}${r.note ? ` · ${esc(r.note)}` : ''}</p></div>`;
   }
@@ -320,7 +320,7 @@ const placeRow = x => {
   const cat = x.category ?? x.type ?? '';
   const badges = `${cat ? `<span class="pl-badge">${esc(cat)}</span>` : ''}${x.open24 ? '<span class="pl-badge open24">24시·응급 표시</span>' : ''}${licBadge(x)}`;
   const links = `${telLink(x.phone ?? x.tel)}${mapLinks(x.name, x.lat, x.lon)}`;
-  return `<li class="place"><div class="pl-info"><h4 class="pl-name">${name}</h4>${badges ? `<div class="pl-badges">${badges}</div>` : ''}${x.address ? `<p class="pl-addr">${esc(x.address)}</p>` : ''}${petLine(x)}</div><div class="pl-side"><span class="d pl-dist">${x.distanceM != null ? km(x.distanceM) : ''}</span>${links ? `<div class="links">${links}</div>` : ''}</div></li>`;
+  return `<li class="place split"><div class="pl-info split-main"><h4 class="pl-name">${name}</h4>${badges ? `<div class="pl-badges">${badges}</div>` : ''}${x.address ? `<p class="pl-addr">${esc(x.address)}</p>` : ''}${petLine(x)}</div><div class="pl-side split-side"><span class="d pl-dist">${x.distanceM != null ? km(x.distanceM) : ''}</span>${links ? `<div class="links">${links}</div>` : ''}</div></li>`;
 };
 const nearSection = (arr, title, note = '') => arr?.length ? `<div class="sec"><h3>${title}<small>${note}</small></h3><ul class="places">${arr.map(placeRow).join('')}</ul></div>` : '';
 
