@@ -1135,3 +1135,15 @@ dialog::backdrop { background: var(--backdrop); }
 .ava-img.age-puppy::after { content: '아기'; background: var(--coral); }
 .ava-opt .ava-img { overflow: hidden; }
 #dogAvatarKind { font-weight: 700; color: var(--accent-text); }
+/* 보호소 첫 화면: 컴팩트 기준 지역 바 + 접힌 지역 선택 카드 */
+#shelterRoot .shelter-region[hidden], #shelterRoot .shelter-bar[hidden], #shelterRoot .shelter-prompt[hidden] { display: none; }
+#shelterRoot .shelter-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-block: 12px; background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); }
+#shelterRoot .shelter-bar-text { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+#shelterRoot .shelter-bar-btn { flex: none; min-height: 36px; padding: 4px 12px; font-size: 13.5px; }
+#shelterRoot .shelter-prompt { margin-block: 12px; padding: 14px; background: var(--accent-soft); color: var(--accent-text); border-radius: var(--r); }
+#shelterRoot .shelter-prompt p { margin: 0 0 10px; font-weight: 700; line-height: 1.45; }
+#shelterRoot .shelter-prompt-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+#shelterRoot .shelter-prompt-acts button { min-height: 40px; padding: 6px 14px; }
+#shelterRoot .shelter-region-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#shelterRoot .shelter-region-head h3 { margin: 0 0 6px; }
+#shelterRoot .shelter-close { min-height: 34px; padding: 2px 12px; font-size: 13px; }

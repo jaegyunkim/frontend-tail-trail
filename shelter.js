@@ -2,6 +2,16 @@
 const code = v => typeof v === 'string' && /^\d{7}$/.test(v);
 const validRegion = r => r && code(r.upr) && (!r.org || code(r.org));
 const regionName = r => [r.uprName || r.upr, r.orgName || r.org].filter(Boolean).join(' ');
+const lastKey = k => k + ':last';
+function readRegion(key) {
+  for (const read of [() => sessionStorage.getItem(key), () => localStorage.getItem(key)]) {
+    try { const r = JSON.parse(read()); if (validRegion(r)) return r; } catch { /* storage unavailable */ }
+  }
+  return null;
+}
+function writeRegion(key, r) {
+  for (const w of [() => sessionStorage.setItem(key, JSON.stringify(r)), () => localStorage.setItem(key, JSON.stringify(r))]) { try { w(); } catch { /* ignore */ } }
+}
 function preferenceKey() {
   try {
     const user = JSON.parse(sessionStorage.getItem('tailtrail.auth'))?.user;
@@ -13,7 +23,7 @@ const photoURL = value => {
   try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password ? u.href : null; } catch { return null; }
 };
 const defaults = () => ({ state: 'protect', sex: '', sort: 'new', center: '', q: '', page: 1, size: 12 });
-export function mountShelter(root, { api, origin }) {
+export function mountShelter(root, { api, origin, places, onRegister }) {
   const doc = root.ownerDocument;
   const el = (tag, cls, text) => {
     const n = doc.createElement(tag);
@@ -70,21 +80,27 @@ export function mountShelter(root, { api, origin }) {
   return async function refresh() {
     const turn = ++entry, alive = () => turn === entry, key = preferenceKey();
     let active = null, lookup = 0, search = 0, find = 0, saved = null, filters = defaults();
-    try { const r = JSON.parse(sessionStorage.getItem(key)); if (validRegion(r)) saved = r; } catch { /* private browsing */ }
+    saved = readRegion(key); const last = readRegion(lastKey(key));
     const panel = el('section', 'shelter-panel'), head = el('header', 'shelter-head');
     head.append(el('h2', '', '동물보호소'), el('p', '', '우리 동네에서 최근 7일 안에 공고된 강아지를 찾아보세요.'));
+    // 컴팩트 기준 지역 바 + 접힌 지역 선택 카드(‘다른 지역 찾기’로 펼침)
+    const prompt = el('section', 'shelter-prompt'), bar = el('div', 'shelter-bar'), barText = el('span', 'shelter-bar-text'), findBtn = button('다른 지역 찾기', () => toggleRegion());
+    prompt.hidden = bar.hidden = true; findBtn.className = 'shelter-bar-btn'; bar.append(barText, findBtn);
     const region = el('section', 'shelter-region'), prov = el('select'), district = el('select'), note = el('p', 'shelter-status');
     note.setAttribute('role','status');
     const selName = s => s.selectedOptions[0]?.textContent || '';
-    const browse = button('이 지역 보기', () => activate({ upr: prov.value, uprName: selName(prov), org: district.value || null, orgName: district.value ? selName(district) : null }));
+    region.hidden = true; findBtn.setAttribute('aria-expanded', 'false');
+    function toggleRegion(open = region.hidden) { region.hidden = !open; findBtn.setAttribute('aria-expanded', String(open)); }
+    const browse = button('이 지역 보기', () => activate({ upr: prov.value, uprName: selName(prov), org: district.value || null, orgName: district.value ? selName(district) : null }, 'manual'));
     const save = button('기본 지역으로 저장', () => {
       if (!active || !alive() || preferenceKey() !== key) return;
       try { sessionStorage.setItem(key, JSON.stringify(active)); saved = active; note.textContent = `기본 지역으로 저장했어요: ${regionName(saved)}`; } catch { note.textContent = '이 브라우저에서는 지역을 저장할 수 없어요.'; }
     });
-    const home = button('기본 지역 보기', () => saved ? activate(saved) : locate()), nearby = button('산책 출발지로 찾기', () => locate());
+    const home = button('기본 지역 보기', () => saved ? activate(saved, 'saved') : locate()), nearby = button('산책 출발지로 찾기', () => locate());
     options(prov, [['','시도 선택']]); options(district, [['','시군구 전체']]); district.disabled = browse.disabled = save.disabled = true;
     browse.classList?.add('primary-act'); const acts = el('div', 'region-acts'); acts.append(browse, save, home, nearby);
-    region.append(el('h3', '', '지역 선택'), field('시도',prov), field('시군구',district), acts, note);
+    const closeBtn = button('닫기', () => toggleRegion(false)); closeBtn.className = 'shelter-close'; const regionHead = el('div', 'shelter-region-head'); regionHead.append(el('h3', '', '지역 선택'), closeBtn);
+     region.append(regionHead, field('시도',prov), field('시군구',district), acts, note);
     const current = el('h3'), form = el('form','shelter-filters'), status = el('p','shelter-status'), results = el('div','shelter-list'), pager = el('nav','shelter-pager'), source = el('p','shelter-source');
     status.setAttribute('role','status'); pager.setAttribute('aria-label','공고 페이지');
     const controls = {};
@@ -111,7 +127,7 @@ export function mountShelter(root, { api, origin }) {
     const official = el('aside','shelter-source');
     const officialLink = (text, path) => { const a = el('a','',text); a.href = `https://www.animal.go.kr/front/${path}`; a.target = '_blank'; a.rel = 'noopener noreferrer'; return a; };
     official.append(el('p','','입양 전에는 공고번호를 메모하고 센터에 전화해 현재 보호 상태, 방문 예약, 준비물을 확인하세요.'), officialLink('공식 보호동물 검색','awtis/public/publicList.do?menuNo=1000000055'), el('span','',' · '), officialLink('국가동물보호정보시스템 홈','index.do'));
-    panel.append(head,region,current,form,status,results,pager,source,official,guide); root.replaceChildren(panel);
+    panel.append(head,prompt,bar,region,current,form,status,results,pager,source,official,guide); root.replaceChildren(panel);
     async function loadGuide() {
       try { const r = await get('guide'); if (alive()) guideSlot.replaceChildren(guideBody(r.guide),el('small','shelter-source',r.attribution)); }
       catch { if (alive()) guideSlot.replaceChildren(el('p','','안내를 불러오지 못했어요.'),button('안내 다시 시도',loadGuide)); }
@@ -131,17 +147,36 @@ export function mountShelter(root, { api, origin }) {
         if (r.pages > 1) { const go = n => { filters.page = n; return loadDogs(); }; const prev = button('이전',()=>go(r.page-1)), next = button('다음',()=>go(r.page+1)); prev.disabled = r.page <= 1; next.disabled = r.page >= r.pages; pager.append(prev,el('span','',`${r.page} / ${r.pages}`),next); }
       } catch { if (alive() && id === search) fail('공고를 불러오지 못했어요. 연결을 확인해 주세요.'); }
     }
-    function activate(r) {
+    function activate(r, basis = 'manual') {
       if (!validRegion(r) || !alive()) return; ++find; active = { upr:r.upr, org:r.org || null, uprName:r.uprName || '', orgName:r.orgName || '' };
       filters = defaults(); for (const [k,s] of Object.entries(controls)) s.value = filters[k];
-      centerList = []; options(controls.center, centerOpts()); current.textContent = `${regionName(active)} · 최근 7일 공고`; form.hidden = false; save.disabled = false;
+      centerList = []; options(controls.center, centerOpts()); current.textContent = '최근 7일 공고'; barText.textContent = `📍 ${regionName(active)} · ${BASIS[basis] || BASIS.manual}`; bar.hidden = false; toggleRegion(false);
+      if (basis === 'manual') { writeRegion(lastKey(key), active); prompt.hidden = true; } form.hidden = false; save.disabled = false;
       note.textContent = saved ? `기본 지역: ${regionName(saved)}` : '지금 보는 지역을 기본 지역으로 저장할 수 있어요.'; return loadDogs();
+    }
+    const BASIS = { frequent: '자주 걷는 곳 기준', history: '최근 조회한 지역', saved: '기본 지역', origin: '산책 출발지 기준', manual: '직접 고른 지역' };
+    function nudge(text, find) {
+      const acts = el('div', 'shelter-prompt-acts'); acts.append(button('자주 걷는 곳 등록', () => onRegister?.()));
+      if (find) acts.append(button('다른 지역 찾기', () => toggleRegion()));
+      prompt.replaceChildren(el('p', '', text), acts); prompt.hidden = false;
+    }
+    // 기본 지역 우선순위: ① 자주 걷는 곳(첫 번째) ② 저장/최근 조회 지역(+ 등록 유도) ③ 둘 다 없음(등록 유도 카드 + 다른 지역 찾기)
+    async function start() {
+      const place = places?.()?.[0];
+      if (place) {
+        const id = ++find;
+        try { const r = await get('locate', { origin: place }); if (!alive() || id !== find) return; if (!validRegion(r)) throw Error(); return activate(r, 'frequent'); }
+        catch { if (!alive() || id !== find) return; note.textContent = '자주 걷는 곳의 지역을 찾지 못했어요. 지역을 직접 선택해 주세요.'; }
+      }
+      const prev = saved || last;
+      if (prev) { if (!place) nudge('자주 걷는 곳을 등록하면 우리 동네 보호소를 바로 볼 수 있어요', false); return activate(prev, saved ? 'saved' : 'history'); }
+      nudge('자주 걷는 곳을 등록해 우리 동네 보호소 공고를 바로 받아보세요', true);
     }
     async function locate() {
       const id = ++find; try {
         const value = origin?.(); if (!value) { note.textContent = '산책 출발지가 없어요. 시도와 시군구를 직접 골라 주세요.'; return; }
         note.textContent = '출발지의 보호 지역을 찾고 있어요.';
-        const r = await get('locate',{origin:value}); if (!alive() || id !== find) return; if (!validRegion(r)) throw Error(); return activate(r);
+        const r = await get('locate',{origin:value}); if (!alive() || id !== find) return; if (!validRegion(r)) throw Error(); return activate(r, 'origin');
       } catch { if (alive() && id === find) note.textContent = '출발지의 지역을 찾지 못했어요. 지역을 직접 선택해 주세요.'; }
     }
     const regionMsg = el('p','shelter-status'); region.append(regionMsg); regionMsg.setAttribute('role','status');
@@ -156,6 +191,6 @@ export function mountShelter(root, { api, origin }) {
         if (district.disabled) regionMsg.textContent = '선택할 시군구가 없어요. 시도 전체를 조회할 수 있어요.';
       } catch { if (alive() && id === lookup) regionMsg.replaceChildren(el('span','','시군구 목록을 받지 못했어요. 시도 전체를 조회하거나 '),button('시군구 다시 시도',prov.onchange)); }
     };
-    await Promise.all([loadGuide(),loadProvinces(),saved ? activate(saved) : locate()]);
+    await Promise.all([loadGuide(),loadProvinces(),start()]);
   };
 }

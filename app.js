@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-14';
+import { mountShelter } from './shelter.js?v=0.1.6-15';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -57,16 +57,16 @@ const BREEDS = {
   poodle:      { size: 'small',  brachy: false, doubleCoat: false, label: '푸들',     art: ['poodle'], ages: {} },
   bichon:      { size: 'small',  brachy: false, doubleCoat: false, label: '비숑',     art: ['bichon'], ages: {} },
   maltese:     { size: 'small',  brachy: false, doubleCoat: false, label: '말티즈',   art: ['maltese-1', 'maltese-4', 'maltese-5', 'maltese-2', 'maltese-3'], ages: {} },
-  // 아래는 그림이 생기면 art 에 이름만 넣으면 바로 후보가 된다(지금은 그림이 없어 건너뜀)
-  saint_bernard:  { size: 'large',  brachy: true,  doubleCoat: true,  label: '세인트버나드', art: [], ages: {} },
-  husky:          { size: 'large',  brachy: false, doubleCoat: true,  label: '허스키',       art: [], ages: {} },
+  // 그림 파일은 소문자·숫자·하이픈 이름(예: saint-bernard-puppy). 아래는 그림이 생기면 art 에 이름만 넣으면 바로 후보가 된다(지금은 그림이 없어 건너뜀)
+  saint_bernard:  { size: 'large',  brachy: true,  doubleCoat: true,  label: '세인트버나드', art: ['saint-bernard'], ages: { puppy: ['saint-bernard-puppy'], senior: ['saint-bernard-senior'] } },
+  husky:          { size: 'large',  brachy: false, doubleCoat: true,  label: '허스키',       art: ['husky'], ages: { puppy: ['husky-puppy'] } },
   samoyed:        { size: 'large',  brachy: false, doubleCoat: true,  label: '사모예드',     art: [], ages: {} },
   chow_chow:      { size: 'medium', brachy: true,  doubleCoat: true,  label: '차우차우',     art: [], ages: {} },
   jindo:          { size: 'medium', brachy: false, doubleCoat: true,  label: '진돗개',       art: [], ages: {} },
-  shiba:          { size: 'medium', brachy: false, doubleCoat: true,  label: '시바',         art: [], ages: {} },
+  shiba:          { size: 'medium', brachy: false, doubleCoat: true,  label: '시바',         art: ['shiba'], ages: {} },
   french_bulldog: { size: 'medium', brachy: true,  doubleCoat: false, label: '프렌치불독',   art: [], ages: {} },
-  pug:            { size: 'small',  brachy: true,  doubleCoat: false, label: '퍼그',         art: [], ages: {} },
-  shih_tzu:       { size: 'small',  brachy: true,  doubleCoat: false, label: '시츄',         art: [], ages: {} },
+  pug:            { size: 'small',  brachy: true,  doubleCoat: false, label: '퍼그',         art: ['pug'], ages: { puppy: ['pug-puppy'], senior: ['pug-senior'] } },
+  shih_tzu:       { size: 'small',  brachy: true,  doubleCoat: true,  label: '시츄',         art: ['shih-tzu'], ages: { puppy: ['shih-tzu-puppy'], senior: ['shih-tzu-senior'] } },
   chihuahua:      { size: 'small',  brachy: false, doubleCoat: false, label: '치와와',       art: [], ages: {} },
   dachshund:      { size: 'small',  brachy: false, doubleCoat: false, label: '닥스훈트',     art: [], ages: {} }
 };
@@ -80,16 +80,16 @@ const AGE_PREFIX = { puppy: '아기 ', senior: '어르신 ' };
 function characterCandidates(d = {}) {
   const size = SIZE_RANK[d.size] != null ? d.size : 'medium', age = AGE_KO[d.age] ? d.age : 'adult';
   const flat = Boolean(d.flatFace), coat = Boolean(d.thickCoat), list = [];
-  for (const [id, b] of Object.entries(BREEDS)) {
+  for (const [order, [id, b]] of Object.entries(BREEDS).entries()) {
     const gap = Math.abs(SIZE_RANK[b.size] - SIZE_RANK[size]); if (gap > 1) continue;
     const arts = [...(b.ages?.[age] ?? []), ...b.art.filter(x => !(b.ages?.[age] ?? []).includes(x))]; if (!arts.length) continue;
     // 대형 아이에게 중형은 '중대형'으로 허용하되 같은 크기보다 뒤. 소형 아이에게 중형도 같은 방식
     let score = (gap === 0 ? 100 : 40) + (flat === b.brachy ? (flat ? 25 : 5) : flat ? -10 : -3) + (coat === b.doubleCoat ? (coat ? 20 : 4) : coat ? -8 : -2);
-    arts.forEach((art, i) => list.push({ art, breed: id, gap, rank: i, score: score - i * 0.5 + ((b.ages?.[age] ?? []).includes(art) ? 30 : 0), dedicated: (b.ages?.[age] ?? []).includes(art) }));
+    arts.forEach((art, i) => list.push({ art, breed: id, gap, rank: i, order, score: score - i * 0.5 + ((b.ages?.[age] ?? []).includes(art) ? 30 : 0), dedicated: (b.ages?.[age] ?? []).includes(art) }));
   }
   // 순서: 같은 크기 견종 대표 → 같은 크기의 다른 그림 → 이웃 크기 대표 → 이웃 크기의 다른 그림 (각 묶음 안은 점수순)
   const tier = x => x.gap * 2 + (x.rank > 0 ? 1 : 0);
-  list.sort((x, y) => tier(x) - tier(y) || y.score - x.score || x.breed.localeCompare(y.breed));
+  list.sort((x, y) => tier(x) - tier(y) || y.score - x.score || x.order - y.order);
   return list.slice(0, 5).map(x => ({ art: x.art, breed: x.breed, ageVariant: x.dedicated ? null : (age === 'adult' ? null : age),
     label: (x.dedicated || age === 'adult' ? '' : AGE_PREFIX[age]) + (ART_NAME[x.art] ?? BREEDS[x.breed].label) }));
 }
@@ -522,7 +522,7 @@ function go(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + tab));
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   if (tab === 'shelter') {
-    refreshShelter ??= mountShelter($('#shelterRoot'), { api, origin: () => firstShelterOrigin || places.find(p => p.selected)?.label || places[0]?.label || originValue(), account: state.auth?.user?.id });
+    refreshShelter ??= mountShelter($('#shelterRoot'), { api, places: () => places.map(p => p.label), onRegister: () => { go('plan'); $('#placeChips')?.scrollIntoView?.({ block: 'center' }); }, origin: () => firstShelterOrigin || places.find(p => p.selected)?.label || places[0]?.label || originValue(), account: state.auth?.user?.id });
     Promise.resolve(refreshShelter()).catch(uiError);
   }
   if (tab === 'plan') scheduleRecommend();

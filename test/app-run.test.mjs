@@ -123,13 +123,13 @@ test('캐리커처: 저장된 id(종류-번호)는 모두 실제 그림 파일�
 test('캐릭터 매칭: 크기가 최우선 — 대형+단두종+이중모에 소형(말티즈·푸들·포메·비숑)이 나오지 않는다', () => {
   const app = load(async () => OPTIONS), small = ['maltese', 'poodle', 'pomeranian', 'bichon'];
   const big = app.characterCandidates({ size: 'large', age: 'adult', flatFace: true, thickCoat: true });
-  assert.equal(big[0].breed, 'retriever'); assert.ok(big.every(c => !small.includes(c.breed)), JSON.stringify(big));
+  assert.equal(big[0].breed, 'saint_bernard'); assert.ok(big.every(c => !small.includes(c.breed)), JSON.stringify(big));
   for (const age of ['puppy', 'adult', 'senior']) for (const f of [false, true]) for (const t of [false, true]) {
     const c = app.characterCandidates({ size: 'large', age, flatFace: f, thickCoat: t }); assert.ok(c.length >= 1 && c.every(x => !small.includes(x.breed)), age + f + t);
     const s2 = app.characterCandidates({ size: 'small', age, flatFace: f, thickCoat: t }); assert.ok(s2.length && s2.every(x => x.breed !== 'retriever'), 'small' + age + f + t);
   }
-  const senior = app.characterCandidates({ size: 'large', age: 'senior' }); assert.equal(senior[0].ageVariant, 'senior'); assert.equal(senior[0].label, '어르신 리트리버');
-  const pup = app.characterCandidates({ size: 'small', age: 'puppy' }); assert.equal(pup[0].ageVariant, 'puppy'); assert.match(pup[0].label, /^아기 /);
+  const senior = app.characterCandidates({ size: 'large', age: 'senior' }); assert.equal(senior[0].art, 'saint-bernard-senior'); assert.equal(senior[0].ageVariant, null); const oldRetriever = senior.find(c => c.breed === 'retriever'); assert.equal(oldRetriever.ageVariant, 'senior'); assert.equal(oldRetriever.label, '어르신 리트리버');
+  const pup = app.characterCandidates({ size: 'small', age: 'puppy' }); const pv = pup.find(c => c.ageVariant); assert.equal(pv.ageVariant, 'puppy'); assert.match(pv.label, /^아기 /);
   assert.equal(app.characterCandidates({ size: 'small', age: 'adult', thickCoat: true })[0].breed, 'pomeranian'); // 이중모 소형은 포메 먼저
   assert.equal(app.characterCandidates({ size: 'medium', age: 'adult' })[0].breed, 'corgi');
   assert.equal(app.comboLabel({ size: 'large', age: 'senior', flatFace: true, thickCoat: true }), '대형 · 노령견 · 단두종 · 이중모');
@@ -147,9 +147,9 @@ test('수정 창: 특성이 바뀌면 후보 다시 계산, 고른 그림이 새
   app.setDraft({ size: 'small', age: 'adult', variant: 2, picked: true }); app.drawAvatarPicker(); // 소형 2번을 직접 고름
   const before = app.characterCandidates({ size: 'small', age: 'adult' })[1].art;
   app.setDraft({ ...app.getDraft(), size: 'large' }); app.drawAvatarPicker(); assert.equal(app.getDraft().variant, 1, '대형 후보에 없는 소형 그림이면 1번으로');
-  app.setDraft({ ...app.getDraft(), variant: 2 }); app.drawAvatarPicker(); // 대형 2번(코기)을 직접 고른 뒤
+  const second = app.characterCandidates({ size: 'large', age: 'adult' })[1].art; app.setDraft({ ...app.getDraft(), variant: 2 }); app.drawAvatarPicker(); // 대형 2번을 직접 고른 뒤
   app.setDraft({ ...app.getDraft(), age: 'senior' }); app.drawAvatarPicker(); // 노령견으로 바꿔도
-  const old = app.characterCandidates({ size: 'large', age: 'senior' }); assert.equal(old[app.getDraft().variant - 1].art, 'corgi', '새 후보에도 있으면 고른 그림 유지');
+  const old = app.characterCandidates({ size: 'large', age: 'senior' }); assert.equal(old[app.getDraft().variant - 1].art, second, '새 후보에도 있으면 고른 그림 유지');
   assert.ok(before);
   // 직접 고르지 않은 기본값(추가 창의 중형 1번=코기)은 대형으로 바꾸면 새 1번(리트리버)
   app.setDraft({ size: 'medium', age: 'adult', variant: 1, picked: false }); app.drawAvatarPicker();
@@ -160,7 +160,7 @@ test('수정 창: 특성이 바뀌면 후보 다시 계산, 고른 그림이 새
 test('서비스워커가 미리 받아 두는 캐리커처 파일이 모두 있다', () => {
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
   const names = [...sw.match(/const CARICATURES = \[([^\]]+)\]/)[1].matchAll(/'([a-z0-9-]+)'/g)].map(m => m[1]);
-  assert.equal(names.length, 10);
+  assert.equal(names.length, 22);
   for (const n of names) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${n}.webp`, import.meta.url)), n);
 });
 test('에이전트 말풍선·신호등·화면 모드', () => {
@@ -189,4 +189,19 @@ test('맞춤 산책 코스 항목도 장소 카드와 같은 2열(.split): 왼�
   assert.match(src, /<li class="tc-item split"><span class="tc-rank"[^>]*>[^<]*<\/span><div class="tc-body split-main">/);
   assert.match(src, /<div class="split-side"><div class="links">\$\{tcLinks\(it\)\}/);
   assert.match(css, /:root\[data-wide-actions="row"\] \.split-side \{/); // 넓은 화면 스위치 한 곳
+});
+
+test('새 유화 캐리커처 12종: 파일·견종 표 연결, 크기·단두종·이중모·나이별로 후보에 오른다', () => {
+  const app = load(async () => OPTIONS);
+  const want = { saint_bernard: ['saint-bernard', 'saint-bernard-puppy', 'saint-bernard-senior'], pug: ['pug', 'pug-puppy', 'pug-senior'], shih_tzu: ['shih-tzu', 'shih-tzu-puppy', 'shih-tzu-senior'], husky: ['husky', 'husky-puppy'], shiba: ['shiba'] };
+  for (const [id, files] of Object.entries(want)) { const b = app.BREEDS[id]; assert.deepEqual([...b.art, ...Object.values(b.ages).flat()].sort(), [...files].sort(), id); for (const f of files) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${f}.webp`, import.meta.url)), f); }
+  const first = d => app.characterCandidates(d)[0];
+  assert.equal(first({ size: 'small', age: 'adult', flatFace: true }).art, 'pug');
+  assert.equal(first({ size: 'small', age: 'puppy', flatFace: true }).art, 'pug-puppy');
+  assert.equal(first({ size: 'small', age: 'senior', flatFace: true, thickCoat: true }).art, 'shih-tzu-senior');
+  assert.equal(first({ size: 'large', age: 'puppy', thickCoat: true }).art, 'husky-puppy');
+  assert.equal(first({ size: 'large', age: 'senior', flatFace: true, thickCoat: true }).art, 'saint-bernard-senior');
+  assert.ok(app.characterCandidates({ size: 'medium', age: 'adult', thickCoat: true }).some(c => c.art === 'shiba'));
+  // 예전에 저장된 id 는 그대로 읽히고 항상 실제 그림이 나온다
+  for (const avatar of ['small-1', 'medium-3', 'large-5', 'flat-2', 'coat-4']) assert.ok(fs.existsSync(new URL('../' + app.caricatureSrc(app.characterFor({ avatar, size: 'small' }).art), import.meta.url)));
 });

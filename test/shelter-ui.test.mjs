@@ -14,13 +14,13 @@ class Element {
   get selectedOptions() { return this.nodes.filter(n=>n.value===this.value); }
   all(predicate) { return [...(predicate(this)?[this]:[]), ...this.nodes.flatMap(n=>n.all(predicate))]; }
 }
-function setup(override, origin = ()=>'테스트 출발지') {
+function setup(override, origin = ()=>'테스트 출발지', places = ()=>['테스트 출발지'], onRegister) {
   const store = new Map(); globalThis.sessionStorage = { getItem:k=>store.get(k)||null, setItem:(k,v)=>store.set(k,v) };
   const doc = { createElement:tag=>new Element(tag,doc) }, root = doc.createElement('main'), calls = [];
   const dog = { breed:'<script>public text</script>', mark:'흰 발', phase:'notice', photo:'javascript:alert(1)', photos:['data:text/html,abc'], center:{name:'테스트센터',tel:'02-123-4567'}, noticeNo:'공고-1' };
   const standard = (route,p) => ({ guide:{guide:{steps:[{title:'전화',body:'공고번호 확인'}]},attribution:'출처'}, locate:{upr:'6110000',uprName:'서울'}, regions:p.has('upr')?{sigungu:[{code:'1234567',name:'예시구'}]}:{sido:[{code:'6410000',name:'경기'}]}, dogs:{source:{status:'ok'}, attribution:'공공데이터',window:{from:'2026-11-15',to:'2026-11-22'},page:Number(p.get('page')),pages:2,total:13,centers:[],dogs:[dog]} })[route];
   const api = async path => { const u = new URL(path,'https://example.org'); calls.push(u); const route = u.pathname.split('/').pop(); return override?.(route,u.searchParams) ?? standard(route,u.searchParams); };
-  const refresh = mountShelter(root,{api,origin});
+  const refresh = mountShelter(root,{api,origin,places,onRegister});
   return { root,refresh,store,calls,btn:n=>root.all(e=>e.tag==='button'&&e.textContent===n)[0],field:n=>root.all(e=>e.tag==='label'&&e.nodes[0].textContent===n)[0].nodes[1] };
 }
 test('원점 조회, 안전한 카드/센터 전화, 안내, 검색과 페이지 전환',async()=>{
@@ -73,4 +73,40 @@ test('좁은 화면(480px 미만): 옵션은 짧은 제목·짧은 값, value �
     assert.deepEqual(opts(field('정렬')), [['new', '정렬 · 최신순'], ['ending', '정렬 · 마감순']]);
     assert.equal(opts(field('보호센터'))[0][1], '센터 · 전체');
   } finally { globalThis.matchMedia = before; }
+});
+
+test('보호소 첫 화면 1순위: 자주 걷는 곳 첫 항목의 지역 공고를 바로 보이고 지역 선택 카드는 접혀 있다', async()=>{
+  const ui = setup(undefined, undefined, ()=>['부산 남구 대연5동','서울 강남구']); await ui.refresh();
+  const loc = ui.calls.filter(u=>u.pathname.endsWith('/locate')); assert.equal(loc.length,1); assert.equal(loc[0].searchParams.get('origin'),'부산 남구 대연5동');
+  assert.ok(ui.calls.some(u=>u.pathname.endsWith('/dogs')));
+  const region = ui.root.all(e=>e.className==='shelter-region')[0], bar = ui.root.all(e=>e.className==='shelter-bar')[0], prompt = ui.root.all(e=>e.className==='shelter-prompt')[0];
+  assert.equal(region.hidden,true); assert.equal(bar.hidden,false); assert.equal(prompt.hidden,true);
+  assert.match(bar.textContent,/📍 서울 · 자주 걷는 곳 기준/); assert.ok(ui.btn('다른 지역 찾기'));
+  assert.equal(ui.root.all(e=>e.tag==='form'&&e.hidden).length,0);
+});
+test('다른 지역 찾기: 카드가 펼쳐지고 이 지역 보기·닫기로 다시 접힌다', async()=>{
+  const ui = setup(); await ui.refresh(); const region = ui.root.all(e=>e.className==='shelter-region')[0], bar = ui.root.all(e=>e.className==='shelter-bar')[0];
+  const open = bar.nodes[1]; assert.equal(open.textContent,'다른 지역 찾기'); open.onclick(); assert.equal(region.hidden,false); assert.equal(open['aria-expanded'],'true');
+  ui.btn('닫기').onclick(); assert.equal(region.hidden,true); open.onclick(); assert.equal(region.hidden,false);
+  ui.field('시도').value = '6410000'; await ui.field('시도').onchange(); await ui.btn('이 지역 보기').onclick();
+  assert.equal(region.hidden,true); assert.match(bar.textContent,/직접 고른 지역/); assert.equal(ui.calls.at(-1).searchParams.get('upr'),'6410000');
+});
+test('2순위: 자주 걷는 곳이 없고 조회 이력이 있으면 그 지역 공고 + 등록 유도 문구·버튼', async()=>{
+  let registered = 0; const first = setup(undefined, undefined, ()=>[]); await first.refresh();
+  assert.equal(first.root.all(e=>e.className==='shelter-prompt')[0].hidden,false);
+  first.btn('다른 지역 찾기').onclick(); first.field('시도').value='6410000'; await first.field('시도').onchange(); await first.btn('이 지역 보기').onclick();
+  const saved = JSON.stringify({upr:'6410000',uprName:'경기',org:null,orgName:''}); // 이력 저장 확인용으로 같은 저장소를 다시 사용
+  const second = setup(undefined, undefined, ()=>[], ()=>registered++); for (const [k,v] of first.store) second.store.set(k,v);
+  await second.refresh(); const prompt = second.root.all(e=>e.className==='shelter-prompt')[0];
+  assert.equal(second.calls.filter(u=>u.pathname.endsWith('/locate')).length,0); assert.equal(second.calls.find(u=>u.pathname.endsWith('/dogs')).searchParams.get('upr'),'6410000');
+  assert.match(prompt.textContent,/자주 걷는 곳을 등록하면 우리 동네 보호소를 바로 볼 수 있어요/); assert.equal(prompt.hidden,false);
+  second.btn('자주 걷는 곳 등록').onclick(); assert.equal(registered,1); assert.match(second.root.all(e=>e.className==='shelter-bar')[0].textContent,/최근 조회한 지역/); assert.ok(saved);
+});
+test('3순위: 둘 다 없으면 등록 유도 카드 + 다른 지역 찾기, 공고 목록은 아직 없다', async()=>{
+  let registered = 0; const ui = setup(undefined, undefined, ()=>[], ()=>registered++); await ui.refresh();
+  const prompt = ui.root.all(e=>e.className==='shelter-prompt')[0], region = ui.root.all(e=>e.className==='shelter-region')[0];
+  assert.match(prompt.textContent,/자주 걷는 곳을 등록해 우리 동네 보호소 공고를 바로 받아보세요/); assert.equal(prompt.hidden,false); assert.equal(region.hidden,true);
+  assert.equal(ui.calls.some(u=>u.pathname.endsWith('/dogs')||u.pathname.endsWith('/locate')),false);
+  ui.btn('자주 걷는 곳 등록').onclick(); assert.equal(registered,1);
+  prompt.all(e=>e.tag==='button'&&e.textContent==='다른 지역 찾기')[0].onclick(); assert.equal(region.hidden,false);
 });
