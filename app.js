@@ -135,7 +135,7 @@ const characterFor = d => {
   const c = characterCandidates(d, LEGACY_BREEDS), n = Number(avatarId(d).slice(-1)) || 1; return c[n - 1] ?? c[0] ?? DEFAULT_CHARACTER;
 };
 // 같은 이름으로 그림 파일을 교체했을 때(이름 = 저장 id 라 바꿀 수 없음) 브라우저 캐시의 옛 그림을 쓰지 않게 주소에 판 번호를 붙인다. 교체할 때마다 +1
-const ART_REV = 3;
+const ART_REV = 4;
 const caricatureSrc = name => { const n = Object.values(BREEDS).some(b => b.art.includes(name) || Object.values(b.ages ?? {}).flat().includes(name)) ? name : DEFAULT_CARICATURE; return `assets/caricatures/${n}.webp?v=${ART_REV}`; };
 const AGE_BADGE = { puppy: '아기', senior: '어르신' };
 const avatar = (d, cls = '') => { const ch = characterFor(d); return `<span class="dog-ava ${cls}${ch.ageVariant ? ' age-' + ch.ageVariant : ''}" aria-hidden="true"><img src="${caricatureSrc(ch.art)}" alt="" width="96" height="96" loading="lazy" decoding="async">${AGE_BADGE[d?.age] ? `<i class="ava-badge">${AGE_BADGE[d.age]}</i>` : ''}</span>`; };

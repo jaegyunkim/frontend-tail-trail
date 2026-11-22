@@ -338,8 +338,8 @@ test('#34 최종 3장: 프렌치불독 노령·차우차우 성견/아기 연결
   assert.equal(app.characterFor({ size: 'small', age: 'senior', flatFace: true, avatar: 'french-bulldog' }).ageVariant, 'senior');
   assert.equal(app.characterFor({ size: 'medium', age: 'adult', flatFace: true, thickCoat: true, avatar: 'corgi' }).art, 'corgi');
   // 캐리커처 주소의 판 번호로 브라우저 캐시를 갱신
-  assert.equal(app.caricatureSrc('chow-chow-senior'), 'assets/caricatures/chow-chow-senior.webp?v=3');
-  assert.equal(app.caricatureSrc('chow-chow'), 'assets/caricatures/chow-chow.webp?v=3');
+  assert.equal(app.caricatureSrc('chow-chow-senior'), 'assets/caricatures/chow-chow-senior.webp?v=4');
+  assert.equal(app.caricatureSrc('chow-chow'), 'assets/caricatures/chow-chow.webp?v=4');
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8'); assert.match(sw, /cache: 'reload'/, '서비스워커 미리 받기는 HTTP 캐시를 건너뜀');
 });
 
@@ -368,7 +368,7 @@ test('H6 남은 산책 판단은 한 곳에만: 결과가 없거나 횟수를 �
 test('닥스훈트 나이별 그림과 캐리커처 버전 연결', () => {
   const app = load(async () => OPTIONS), c = d => app.characterCandidates(d), arts = d => c(d).map(x => x.art);
   for (const f of ['chihuahua', 'dachshund', 'jindo']) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${f}.webp`, import.meta.url)), f);
-  assert.equal(app.caricatureSrc('jindo'), 'assets/caricatures/jindo.webp?v=3'); assert.equal(app.caricatureSrc('chihuahua'), 'assets/caricatures/chihuahua.webp?v=3');
+  assert.equal(app.caricatureSrc('jindo'), 'assets/caricatures/jindo.webp?v=4'); assert.equal(app.caricatureSrc('chihuahua'), 'assets/caricatures/chihuahua.webp?v=4');
   const sa = arts({ size: 'small', age: 'adult' }); assert.ok(sa.includes('chihuahua') && sa.includes('dachshund'), sa.join());
   // 닥스훈트 아기·노령은 전용 그림을 사용
   for (const age of ['puppy', 'senior']) { const d = c({ size: 'small', age }).find(x => x.breed === 'dachshund'); assert.equal(d?.art, `dachshund-${age}`); assert.equal(d?.ageVariant, null); }
