@@ -71,6 +71,7 @@ function drawDogChips() {
   if (!dogs.length) {
     el.innerHTML = `<div class="dog-empty-card"><span class="dog-ava lg" style="background:#EAF1EA" aria-hidden="true">🐾</span><div><b>아직 등록한 아이가 없어요</b><p>등록하면 아이 크기·나이에 맞춰 판단해요. 지금은 <b>성견 중형</b> 기준이에요.</p></div></div><button type="button" class="primary block soft" id="btnDogFirst2">＋ 우리 아이 처음 등록하기</button>`;
     $('#btnDogFirst2').onclick = () => { go('dogs'); openDogForm(); };
+    scheduleRecommend();
     return;
   }
   const cur = curDog(); sel.dogId = cur.id;
@@ -78,6 +79,7 @@ function drawDogChips() {
     <div class="agent-say mini">${avatar(cur, 'agent sm')}<div class="say-bubble"><b>${esc(cur.name)}</b><p>${esc(cur.care?.summary || '오늘 같이 걸을 준비 됐어요!')}</p></div></div><button type="button" class="origin-link" data-go="dogs">✏️ 아이 정보 수정·삭제</button>`;
   el.querySelectorAll('.dog-pick-card[data-id]').forEach(b => b.onclick = () => { sel.dogId = Number(b.dataset.id); drawDogChips(); });
   const add = el.querySelector('[data-add]'); if (add) add.onclick = () => { go('dogs'); openDogForm(); };
+  scheduleRecommend();
 }
 async function loadDogs() {
   try { const r = await api('/v1/me/dogs'); dogs = r.dogs; dogOptions.maxDogs = r.max ?? dogOptions.maxDogs; if (!dogs.some(d => d.id === sel.dogId)) sel.dogId = dogs.find(d => d.selected)?.id ?? dogs[0]?.id ?? null; drawDogChips(); renderDogs(); } catch { /* 부가 기능: 못 불러와도 기본 아이로 판단 */ }
@@ -202,6 +204,71 @@ function locateHere() {
     locating = false; setOrigin(here.label, true);
   }, e => { if (rev !== originRevision) return; locating = false; renderPlaces(); toast(e?.code === 1 ? '위치 권한이 없어요. 주소로 추가해 주세요' : '현재 위치를 찾지 못했어요. 다시 시도하거나 주소로 추가해 주세요'); }, { timeout: 8000, maximumAge: 600000 });
 }
+// ---------- 오늘의 맞춤 산책 코스(로그인 직후 자동, 아이·출발지를 바꾸면 다시) ----------
+// 기반: 어디물어 '오늘의 추천'(로그인 직후 한 번 부르고, 실패하면 조용히 숨김). 서버 GET /v1/walk/recommend 는
+// 산책 판단 횟수를 쓰지 않는다. 이 API 가 없는 예전 서버(404 not found)면 카드를 숨긴 채 다시 부르지 않는다.
+const REC_DEBOUNCE_MS = 350, REC_FRESH_MS = 10 * 60000;
+const rec = { ready: false, off: false, timer: null, seq: 0, key: null, at: 0, data: null, loading: false };
+const recKey = () => `${sel.dogId ?? ''}|${originValue()}`;
+function recReset() { clearTimeout(rec.timer); Object.assign(rec, { ready: false, timer: null, seq: rec.seq + 1, key: null, at: 0, data: null, loading: false }); const el = document.getElementById('todayCourse'); if (el) { el.hidden = true; el.innerHTML = ''; } }
+/** 아이·출발지가 바뀌면 잠깐 기다렸다가 한 번만 부른다(같은 조건이고 10분 안이면 다시 부르지 않음) */
+function scheduleRecommend(force = false) {
+  if (!rec.ready || rec.off || !state.auth || locating) return;
+  const key = recKey();
+  if (!force && key === rec.key && (rec.loading || Date.now() - rec.at < REC_FRESH_MS)) return;
+  clearTimeout(rec.timer); rec.timer = setTimeout(() => loadRecommend(key), REC_DEBOUNCE_MS);
+}
+async function loadRecommend(key = recKey()) {
+  const el = $('#todayCourse'), seq = ++rec.seq; rec.key = key; rec.loading = true;
+  if (!rec.data) { el.hidden = false; el.innerHTML = recSkeleton(); } else el.classList.add('is-updating');
+  const [dogId, origin] = [sel.dogId, originValue()];
+  try {
+    const q = new URLSearchParams(); if (origin) q.set('origin', origin); if (dogId != null) q.set('dogId', dogId);
+    const r = await api('/v1/walk/recommend?' + q, { timeoutMs: 20000 });
+    if (seq !== rec.seq || !state.auth) return; // 그사이 아이·출발지를 또 바꿨으면 늦게 온 응답은 버린다
+    rec.data = r; rec.at = Date.now(); renderTodayCourse(r);
+  } catch (e) {
+    if (seq !== rec.seq) return;
+    if (e.status === 404 && /not found/i.test(String(e?.['message'] ?? ''))) { rec.off = true; el.hidden = true; el.innerHTML = ''; return; } // 새 API 가 아직 없는 서버
+    rec.key = null; rec.at = 0;
+    el.hidden = false; el.innerHTML = `<div class="tc-card tc-error" role="alert"><p class="tc-eyebrow">오늘의 맞춤 산책 코스</p><p>${esc(e.status === 429 ? '잠시 후 다시 추천해 드릴게요' : '추천을 불러오지 못했어요. ' + errText(e))}</p><button type="button" class="ghost small" data-rec-retry>다시 추천받기</button></div>`;
+    el.querySelector('[data-rec-retry]').onclick = () => scheduleRecommend(true);
+  } finally { if (seq === rec.seq) { rec.loading = false; el.classList.remove('is-updating'); } }
+}
+const recSkeleton = () => `<div class="tc-card is-loading" aria-busy="true" aria-label="오늘의 맞춤 산책 코스를 고르는 중"><p class="tc-eyebrow">오늘의 맞춤 산책 코스</p><div class="tc-skel w60"></div><div class="tc-skel w90"></div><div class="tc-skel w80"></div><p class="tc-loading-txt">아이와 지금 날씨에 맞는 길을 고르는 중…</p></div>`;
+const tcDist = k => k == null || k <= 0.25 ? '바로 앞' : k < 1 ? Math.round(k * 1000) + 'm' : (Math.round(k * 10) / 10) + 'km';
+const TC_KIND = { diary: '🐾', home: '🏡', place: '📍', park: '🌳' };
+function tcLinks(it) {
+  if (!Number.isFinite(+it.lat) || !Number.isFinite(+it.lon)) return '';
+  if (it.approx) return `<a class="link-btn" href="https://map.kakao.com/link/map/${encodeURIComponent(it.name)},${it.lat},${it.lon}" target="_blank" rel="noopener"><span aria-hidden="true">🗺️</span>동네 지도<b aria-hidden="true">↗</b></a>`;
+  return mapLinks(it.place || it.name, it.lat, it.lon);
+}
+function renderTodayCourse(r) {
+  const el = $('#todayCourse'); el.hidden = false;
+  const d = dogs.find(x => x.id === r.dog?.id) ?? r.dog ?? curDog() ?? {};
+  const nudge = r.nudge ? `<div class="tc-nudge"><span aria-hidden="true">💡</span><p>${esc(r.nudge.text)}</p>${r.nudge.kind === 'register-place' || r.nudge.kind === 'pick-origin' ? '<button type="button" class="ghost small" data-rec-place>자주 걷는 곳 등록</button>' : r.nudge.kind === 'write-diary' ? '<button type="button" class="ghost small" data-rec-diary>꼬리일기 쓰기</button>' : ''}</div>` : '';
+  if (r.needOrigin || !r.items?.length) {
+    el.innerHTML = `<div class="tc-card"><div class="tc-head">${avatar(d, 'sm')}<div class="tc-title"><p class="tc-eyebrow">오늘의 맞춤 산책 코스</p><h3>출발지를 고르면 바로 골라 드려요</h3></div></div>${nudge}</div>`;
+  } else {
+    const w = r.walk, n = r.weather?.now, gc = GC[w.gate] ?? 'caution', air = r.weather?.air;
+    const wx = [n?.temp != null ? `<span>🌡️ ${n.temp}° <small>체감 ${n.feelsLike}°</small></span>` : '', n?.pavement != null ? `<span class="${n.pavement >= (w.pavementWarnC ?? 45) ? 'hot' : ''}">🐾 노면 ${n.pavement}° <small>추정</small></span>` : '', air ? `<span class="${air.grade >= 3 ? 'hot' : ''}">😷 ${esc(air.gradeName)}</span>` : '', n ? `<span>${n.precip && n.precip !== '없음' ? '☔ ' + esc(n.precip) : '💧 강수 ' + (n.pop ?? 0) + '%'}</span>` : ''].filter(Boolean).join('');
+    el.innerHTML = `<div class="tc-card ${gc}">
+      <div class="tc-head">${avatar(d, 'sm')}<div class="tc-title"><p class="tc-eyebrow">오늘의 맞춤 산책 코스</p><h3>${esc(d.name ?? '우리 아이')}${josaWa(d.name ?? '우리 아이')} ${esc(r.items[0].when)}</h3><small>${esc(r.origin?.label ?? '')} · ${esc(r.basisLabel)}</small></div><span class="tag ${gc}">${esc(w.gateName)}</span></div>
+      ${wx ? `<div class="tc-wx" aria-label="출발지 지금 날씨">${wx}</div>` : ''}
+      ${r.items[0].reasons?.[0] ? `<p class="tc-say">${esc(r.items[0].reasons[0])}</p>` : ''}
+      <ol class="tc-list">${r.items.map(it => `<li class="tc-item"><span class="tc-rank" aria-hidden="true">${TC_KIND[it.kind] ?? it.rank}</span><div class="tc-body">
+        <div class="tc-name"><b>${esc(it.name)}</b><small class="tc-src">${esc(it.source)}</small></div>
+        <p class="tc-meta"><span>⏱ ${it.minutes}분</span><span>📏 ${it.routeKm}km</span><span>📍 ${tcDist(it.distanceKm)}</span>${it.mode === 'ride' ? '<span>🚗 차로 이동</span>' : ''}</p>
+        ${it.reasons[0] && it.reasons[0] !== r.items[0].reasons[0] ? `<p class="tc-why">${esc(it.reasons[0])}</p>` : ''}${it.reasons[1] ? `<p class="tc-why sub">${esc(it.reasons[1])}</p>` : ''}
+        <div class="links">${tcLinks(it)}<a class="link-btn" href="#" data-rec-diary-item="${it.rank}"><span aria-hidden="true">✍️</span>다녀왔어요</a></div></div></li>`).join('')}</ol>
+      ${nudge}
+      <p class="tc-foot">${esc(r.quota?.note ?? '')}${r.note ? ` · ${esc(r.note)}` : ''}</p></div>`;
+  }
+  el.querySelector('[data-rec-place]')?.addEventListener('click', () => openPlaces());
+  el.querySelector('[data-rec-diary]')?.addEventListener('click', () => prefillDiary({}));
+  el.querySelectorAll('[data-rec-diary-item]').forEach(a => a.onclick = e => { e.preventDefault(); const it = r.items.find(x => String(x.rank) === a.dataset.recDiaryItem); prefillDiary({ place: it?.place || it?.name, minutes: it?.minutes }); });
+}
+const josaWa = w => { const c = String(w).charCodeAt(String(w).length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 ? '과' : '와'; };
 // ---------- 오늘의 산책 판단 만들기 ----------
 
 $('#planForm').onsubmit = async e => {
@@ -412,6 +479,7 @@ function go(tab) {
     refreshShelter ??= mountShelter($('#shelterRoot'), { api, origin: () => firstShelterOrigin || places.find(p => p.selected)?.label || places[0]?.label || originValue(), account: state.auth?.user?.id });
     Promise.resolve(refreshShelter()).catch(uiError);
   }
+  if (tab === 'plan') scheduleRecommend();
   if (tab === 'near') loadNearby();
   if (tab === 'diary') loadDiary();
   if (tab === 'dogs') renderDogs();
@@ -464,6 +532,7 @@ function renderPlaces() {
   $('#placeList').innerHTML = places.map(p => `<li><span>${p.selected ? '✓ ' : ''}${esc(p.label)}</span><button type="button" class="ghost small" data-del="${p.id}">지우기</button></li>`).join('') || '<li class="muted">아직 저장한 곳이 없어요.</li>';
   $('#placeList').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { places = (await api(`/v1/me/places/${b.dataset.del}/delete`, { method: 'POST', body: '{}' })).places; renderPlaces(); });
   if ($('#placeAdd')) syncPlaceButtons();
+  scheduleRecommend();
 }
 async function loadPlaces() { try { places = (await api('/v1/me/places')).places; renderPlaces(); const s = places.find(p => p.selected); if (s && !$('#origin').value) setOrigin(s.label); } catch { /* 부가 기능 */ } }
 async function addPlace(text) {
@@ -696,7 +765,7 @@ document.querySelectorAll('input[data-clearable], textarea[data-clearable]').for
 // 값을 코드로 넣은 뒤(저장된 아이디 등) ⓧ 표시를 맞춘다. 함수 선언이라 모듈 초기화 순서와 무관
 function syncClearButtons() { document.querySelectorAll('input[data-clearable], textarea[data-clearable]').forEach(inp => { const b = inp.parentElement.querySelector('.clear-btn'); if (b) b.hidden = !inp.value; }); }
 let ending = false;
-function endSession(msg, reason = 'logout') { if (ending) return; ending = true; refreshShelter = null; firstShelterOrigin = null; $('#shelterRoot').replaceWith($('#shelterRoot').cloneNode(false)); places = []; $('#origin').value = ''; here = null; originRevision++; locating = false; go('plan'); logout(reason); lastPlan = null; $('#planResult').innerHTML = ''; dogs = []; sel.dogId = null; showLogin(msg); ending = false; }
+function endSession(msg, reason = 'logout') { if (ending) return; ending = true; recReset(); refreshShelter = null; firstShelterOrigin = null; $('#shelterRoot').replaceWith($('#shelterRoot').cloneNode(false)); places = []; $('#origin').value = ''; here = null; originRevision++; locating = false; go('plan'); logout(reason); lastPlan = null; $('#planResult').innerHTML = ''; dogs = []; sel.dogId = null; showLogin(msg); ending = false; }
 async function showApp() {
   $('#loginView').hidden = true; $('#appView').hidden = false;
   if (!dogOptions.sizes.length) { try { dogOptions = await api('/v1/dog-options', { noAuth: true }); } catch { /* 기본 선택지 없이도 오늘 판단은 가능 */ } }
@@ -708,7 +777,7 @@ async function showApp() {
   timer = startTimer($('#timer'), { onWarn: () => toast('1분 뒤 자동 로그아웃돼요. 필요한 내용은 지금 확인해 주세요.', 8000), onExpire: () => { const min = sessionMinutes(), lq = loginQuota(); endSession(`${min}분 이용 시간이 끝나 로그아웃했어요.`, 'expired'); showSessionEnd(min, lq); } });
   if (state.auth.user?.mustChangePassword) openPw(true);
   refreshUsage();
-  loadPlaces().then(loadDogs);
+  loadPlaces().then(loadDogs).then(() => { rec.ready = true; scheduleRecommend(true); });
   recordLoginLocation();
 }
 // 이용 시간 만료 안내: 이 계정의 로그인 1회 시간과 남은 로그인 횟수(최근 24시간 기준)

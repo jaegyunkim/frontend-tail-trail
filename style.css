@@ -1026,3 +1026,46 @@ dialog::backdrop { background: var(--backdrop); }
   .places li.place .links .link-btn { flex: none; min-height: 44px; padding: 0 10px; font-size: 13.5px; }
   .places .pl-dist { align-self: center; }
 }
+/* 오늘의 맞춤 산책 코스(오늘 탭, 출발지 아래): 20px 카드 · 에메랄드(좋음)·노랑(주의)·코랄(위험) 왼쪽 띠 · 캐리커처 */
+.today-course { margin: 2px 0 18px; }
+.tc-card { position: relative; background: var(--card); border: 1px solid var(--hair); border-left: 6px solid var(--brand); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; transition: opacity .2s; }
+.tc-card.caution { border-left-color: var(--sun); } .tc-card.indoor { border-left-color: var(--coral); }
+.today-course.is-updating .tc-card { opacity: .55; }
+.tc-eyebrow { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .02em; color: var(--accent-text); }
+.tc-head { display: flex; align-items: center; gap: 12px; }
+.tc-head .dog-ava.sm, .tc-head > .dog-ava { width: 52px; height: 52px; border-radius: 16px; }
+.tc-title { flex: 1; min-width: 0; }
+.tc-title h3 { margin: 2px 0 2px; font-size: 18px; font-weight: 800; line-height: 1.3; color: var(--ink); }
+.tc-title small { display: block; font-size: 12.5px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-head .tag { flex: none; align-self: flex-start; font-size: 12.5px; }
+.tc-wx { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 4px; }
+.tc-wx span { display: inline-flex; align-items: baseline; gap: 4px; padding: 5px 10px; border-radius: var(--r-pill); background: var(--soft); color: var(--ink2); font-size: 13px; font-weight: 700; }
+.tc-wx span small { font-weight: 500; color: var(--mute); font-size: 11.5px; }
+.tc-wx span.hot { background: var(--coral-soft); color: var(--coral-text); }
+.tc-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.tc-item { display: flex; gap: 10px; padding: 12px 0; border-top: 1px solid var(--hair); }
+.tc-rank { flex: none; display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; background: var(--accent-soft); font-size: 17px; }
+.tc-body { flex: 1; min-width: 0; }
+.tc-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.tc-name b { font-size: 16px; color: var(--ink); }
+.tc-src { font-size: 12px; font-weight: 700; color: var(--coral-text); }
+.tc-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0 6px; font-size: 13px; color: var(--ink2); }
+.tc-why { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink); }
+.tc-why.sub { color: var(--mute); font-size: 13px; margin-top: 2px; }
+.tc-body .links { margin-top: 8px; }
+.tc-nudge { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--coral-soft); color: var(--coral-text); }
+.tc-nudge p { flex: 1; margin: 0; font-size: 13.5px; line-height: 1.45; }
+.tc-nudge .ghost { flex: none; min-height: 40px; }
+.tc-foot { margin: 10px 0 0; font-size: 11.5px; color: var(--mute); }
+.tc-error p:not(.tc-eyebrow) { margin: 6px 0 10px; font-size: 14px; color: var(--ink2); }
+.tc-card.is-loading { border-left-color: var(--hair); }
+.tc-skel { height: 14px; border-radius: 8px; margin: 10px 0; background: linear-gradient(90deg, var(--soft) 25%, var(--hair) 50%, var(--soft) 75%); background-size: 200% 100%; animation: tc-shine 1.2s linear infinite; }
+.tc-skel.w60 { width: 60%; } .tc-skel.w80 { width: 80%; } .tc-skel.w90 { width: 90%; }
+.tc-loading-txt { margin: 8px 0 0; font-size: 13px; color: var(--mute); }
+@keyframes tc-shine { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .tc-skel { animation: none; } }
+@media (max-width: 400px) { .tc-card { padding: 14px 12px; } .tc-title h3 { font-size: 16.5px; } .tc-head .tag { display: none; } .tc-rank { width: 30px; height: 30px; font-size: 15px; } .tc-nudge { flex-wrap: wrap; } .tc-nudge .ghost { width: 100%; } }
+.tc-say { margin: 8px 0 0; padding: 10px 12px; border-radius: var(--r-sm); background: var(--accent-soft); color: var(--accent-text); font-size: 14px; font-weight: 700; line-height: 1.5; }
+.tc-card.caution .tc-say { background: var(--caution-soft, var(--soft)); color: var(--caution-text, var(--ink)); } .tc-card.indoor .tc-say { background: var(--coral-soft); color: var(--coral-text); }
+.tc-body .links { display: flex; flex-wrap: wrap; gap: 6px; }
+.tc-body .links .link-btn { min-height: 36px; padding: 4px 10px; font-size: 13px; }
