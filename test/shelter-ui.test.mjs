@@ -52,3 +52,15 @@ test('이전 요청이 늦게 도착해도 최신 검색 결과를 유지',async
   const sex = ui.field('성별'); sex.value = 'M'; const slow = sex.onchange(); sex.value='F'; await sex.onchange(); release({source:{status:'error'}}); await slow;
   assert.match(ui.root.textContent,/검색 결과 13마리/); assert.equal(ui.btn('공고 다시 시도'),undefined);
 });
+test('지역 선택·공고 필터: 라벨 글자는 sr-only, 옵션에 제목(값은 그대로), 지역 버튼 4개는 한 묶음', async () => {
+  const { refresh, root, field } = setup(); await refresh();
+  const labels = root.all(e => e.tag === 'label' && e.className === 'shelter-field');
+  assert.ok(labels.length >= 7); for (const l of labels) assert.equal(l.nodes[0].className, 'sr-only');
+  const opts = s => s.nodes.map(o => [o.value, o.textContent]);
+  assert.deepEqual(opts(field('보호 상태')), [['protect', '보호 상태 · 보호 중'], ['ended', '보호 상태 · 가족을 만난 아이']]);
+  assert.deepEqual(opts(field('성별')), [['', '성별 · 전체'], ['M', '성별 · 수컷'], ['F', '성별 · 암컷']]);
+  assert.deepEqual(opts(field('정렬')), [['new', '정렬 · 최신 공고순'], ['ending', '정렬 · 공고 종료일순']]);
+  assert.equal(opts(field('보호센터'))[0][1], '보호센터 · 전체');
+  assert.equal(field('검색어').placeholder, '품종, 발견 장소, 공고번호'); assert.ok(field('검색어')['aria-label']);
+  const acts = root.all(e => e.className === 'region-acts')[0]; assert.deepEqual(acts.nodes.map(b => b.textContent), ['이 지역 보기', '기본 지역으로 저장', '기본 지역 보기', '산책 출발지로 찾기']);
+});

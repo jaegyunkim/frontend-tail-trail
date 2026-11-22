@@ -1086,3 +1086,20 @@ dialog::backdrop { background: var(--backdrop); }
 .places li.place:has(.links > :nth-child(3)) { padding-top: 10px; padding-bottom: 10px; }
 .places li.place:has(.links > :nth-child(3)) .pl-side, .places li.place .links:has(> :nth-child(3)) { gap: 4px; }
 .places li.place:has(.links > :nth-child(3)) .pl-dist { line-height: 1.15; }
+/* 화면에서만 숨김(스크린리더는 읽음) */
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* 보호소 '지역 선택': 라벨 글자 없이 셀렉트 두 개 + 버튼 4개를 카드 너비에 고르게(좁으면 2×2, 넓으면 1×4) */
+#shelterRoot .shelter-region .shelter-field { margin: 0 0 8px; }
+#shelterRoot .shelter-region .shelter-field select { margin: 0; width: 100%; }
+#shelterRoot .region-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 4px 0 0; }
+#shelterRoot .region-acts button { width: 100%; min-height: 44px; padding: 6px 8px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#shelterRoot .region-acts button.primary-act { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 800; }
+#shelterRoot .region-acts button:disabled { opacity: .5; }
+@media (min-width: 600px) { #shelterRoot .region-acts { grid-template-columns: repeat(4, minmax(0, 1fr)); } #shelterRoot .region-acts button { font-size: 13.5px; padding: 6px 4px; } }
+@media (max-width: 340px) { #shelterRoot .region-acts button { font-size: 13px; padding: 6px 4px; } }
+/* 보호소 공고 필터: 라벨 글자 없이(옵션 글자가 '제목 · 값'), 2열 그리드·검색 버튼 유지, 긴 글자는 말줄임 */
+#shelterRoot .shelter-filters:not([hidden]) { gap: 8px 10px; align-items: center; }
+#shelterRoot .shelter-filters .shelter-field select, #shelterRoot .shelter-filters .shelter-field input { margin: 0; min-width: 0; }
+#shelterRoot .shelter-filters .shelter-field select { text-overflow: ellipsis; white-space: nowrap; overflow: hidden; padding-right: 30px; }
+#shelterRoot .shelter-filters .shelter-submit { margin: 0; min-height: 48px; }
+@media (max-width: 340px) { #shelterRoot .shelter-filters:not([hidden]) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 6px; } #shelterRoot .shelter-filters .shelter-field select { font-size: 14px; padding-left: 10px; padding-right: 24px; } }
