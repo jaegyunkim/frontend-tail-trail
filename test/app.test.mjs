@@ -97,3 +97,10 @@ test('머리줄 한 줄: 로고·시간 줄바꿈 금지, 좁은 화면은 관�
   assert.match(c, /\.brand b, \.brand small, \.timer \{ white-space: nowrap; \}/);
   assert.match(c, /\.top-right \.icon-btn, \.top-right \.hdr-btn \{ min-width: 44px; width: 44px; height: 44px;/);
 });
+test('관리자 화면: 디자인 토큰·다크모드, 좁은 화면 터치 44px·본문 15px', () => {
+  const h = read('admin.html'), c = read('admin.css');
+  assert.match(h, /localStorage\.getItem\('tailtrail\.theme'\)/); assert.match(h, /admin\.css\?v=0\.1\.6-\d+/);
+  assert.match(c, /:root\[data-theme="dark"\] \{ color-scheme: dark;/); assert.match(c, /@media \(prefers-color-scheme: dark\) \{ :root:not\(\[data-theme="light"\]\)/);
+  assert.match(c, /\.acts button, \.tool button, \.mini-btn, \.ghost-btn, \.vz-tabs button, \.vz-seg button, \.settings button, \.card form button, \.rep-item \{ min-height: 44px; \}/);
+  assert.match(c, /\.tbl td, \.kv, \.rep-kv, \.chatlog \.m,[^{]*\{ font-size: 15px; \}/);
+});
