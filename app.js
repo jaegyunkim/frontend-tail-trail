@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-7';
+import { mountShelter } from './shelter.js?v=0.1.6-8';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -245,9 +245,16 @@ function weatherCard(w, hours) {
 const telLink = p => p ? `<a class="link-btn" href="tel:${esc(String(p).replace(/[^0-9+]/g, ''))}"><span aria-hidden="true">📞</span>전화<b aria-hidden="true">↗</b></a>` : '';
 const mapLinks = (name, lat, lon) => Number.isFinite(+lat) && Number.isFinite(+lon) ? `<a class="link-btn" href="https://map.kakao.com/link/map/${encodeURIComponent(name)},${lat},${lon}" target="_blank" rel="noopener"><span aria-hidden="true">🗺️</span>지도<b aria-hidden="true">↗</b></a><a class="link-btn" href="https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lon}" target="_blank" rel="noopener"><span aria-hidden="true">🧭</span>길찾기<b aria-hidden="true">↗</b></a>` : '';
 /** 가까운 곳 목록 한 줄(이름·거리·전화·지도). 영업·출입은 확인하지 못한 값이라 안내 문구를 함께 둔다 */
-const licBadge = x => x.licensed === true ? ` <span class="tag go" title="행정안전부 영업 중 등록 업소${x.licensedOn ? ' · 인허가 ' + esc(String(x.licensedOn).slice(0, 7).replace('-', '.')) : ''}">인허가 확인</span>` : x.licensed === false ? ' <small class="muted">인허가 정보 미확인</small>' : '';
+const licBadge = x => x.licensed === true ? `<span class="pl-badge lic" title="행정안전부 영업 중 등록 업소${x.licensedOn ? ' · 인허가 ' + esc(String(x.licensedOn).slice(0, 7).replace('-', '.')) : ''}">인허가 확인</span>` : x.licensed === false ? '<span class="pl-badge unk">인허가 정보 미확인</span>' : '';
 const petLine = x => x.pet ? `<p class="pet-cond">🐾 ${[x.pet.allowed, x.pet.breeds].filter(Boolean).map(esc).join(' · ')}${x.pet.need ? `<br>필요: ${esc(x.pet.need)}` : ''}${x.pet.etc ? `<br><small class="muted">${esc(x.pet.etc.split('\n')[0])}</small>` : ''}</p>` : '';
-const placeRow = x => `<li><span>${safeUrl(x.url) ? `<a class="ext" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}${x.open24 ? ' <span class="tag go">24시·응급 표시</span>' : ''}${licBadge(x)} <small class="muted">${esc(x.category ?? x.type ?? '')}</small><br><small class="muted">${esc(x.address ?? '')}</small>${petLine(x)}<div class="links">${telLink(x.phone ?? x.tel)}${mapLinks(x.name, x.lat, x.lon)}</div></span><span class="d">${x.distanceM != null ? km(x.distanceM) : ''}</span></li>`;
+/** 장소 한 칸: 넓으면 [이름·배지·주소 | 거리 | 전화·지도·길찾기] 한 줄, 좁으면 [이름 … 거리] / 배지·주소 / 버튼 줄 (격자 영역은 style.css) */
+const placeRow = x => {
+  const name = safeUrl(x.url) ? `<a class="ext" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name);
+  const cat = x.category ?? x.type ?? '';
+  const badges = `${cat ? `<span class="pl-badge">${esc(cat)}</span>` : ''}${x.open24 ? '<span class="pl-badge open24">24시·응급 표시</span>' : ''}${licBadge(x)}`;
+  const links = `${telLink(x.phone ?? x.tel)}${mapLinks(x.name, x.lat, x.lon)}`;
+  return `<li class="place"><h4 class="pl-name">${name}</h4><span class="d pl-dist">${x.distanceM != null ? km(x.distanceM) : ''}</span>${badges ? `<div class="pl-badges">${badges}</div>` : ''}${x.address ? `<p class="pl-addr">${esc(x.address)}</p>` : ''}${petLine(x)}${links ? `<div class="links">${links}</div>` : ''}</li>`;
+};
 const nearSection = (arr, title, note = '') => arr?.length ? `<div class="sec"><h3>${title}<small>${note}</small></h3><ul class="places">${arr.map(placeRow).join('')}</ul></div>` : '';
 
 // 시간대 막대: 06~21시를 색(좋음·주의·위험)으로 한눈에

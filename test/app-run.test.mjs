@@ -141,3 +141,10 @@ test('꼬리일기 배변: 기분 칩과 같은 줄의 작은 체크(별도 카�
   assert.doesNotMatch(h, /diary-poop/);
   assert.match(src, /poop: \$\('#diaryPoop'\)\.checked/);
 });
+test('가까운 곳 장소 칸: 이름(h4)·거리·배지·주소·버튼 영역, 빈 값은 그리지 않음', () => {
+  const src = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8'), css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(src, /<li class="place"><h4 class="pl-name">/);
+  assert.match(css, /grid-template-areas: "name dist" "badge badge" "addr addr" "pet pet" "links links"/);
+  assert.match(css, /@media \(min-width: 600px\) \{\n  \.places li\.place \{ grid-template-columns: minmax\(0, 1fr\) auto auto; grid-template-areas: "name dist links"/);
+  const app = load(async () => ({})); assert.doesNotThrow(() => app.renderPlan({ id: 'x', plan: PLAN }));
+});

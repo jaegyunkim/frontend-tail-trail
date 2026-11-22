@@ -1000,3 +1000,29 @@ dialog::backdrop { background: var(--backdrop); }
   .brand { gap: 7px; } .brand b { font-size: 16px; }
 }
 @media (max-width: 340px) { .brand > div { display: none; } }
+/* 가까운 곳 장소 목록: 칸마다 은은한 카드, 이름은 굵고 또렷하게(밑줄은 호버·포커스 때만), 배지는 보조색
+   좁은 화면: [이름 … 거리] / 배지 / 주소 / [전화·지도·길찾기]  ·  600px 이상: [이름·배지·주소 | 거리 | 버튼] 한 줄 */
+.places li.place { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name dist" "badge badge" "addr addr" "pet pet" "links links"; align-items: center; column-gap: 12px; row-gap: 6px; padding: 14px 16px; margin: 0 0 10px; background: var(--card); border: 1px solid var(--hair); border-radius: var(--r-sm); font-size: 15px; }
+.places li.place:last-child { margin-bottom: 0; border-bottom: 1px solid var(--hair); }
+.sec .places li.place { background: var(--soft); border-color: transparent; }
+.places .pl-name { grid-area: name; margin: 0; font-size: 17px; font-weight: 800; line-height: 1.35; color: var(--ink); letter-spacing: -.01em; min-width: 0; overflow-wrap: anywhere; }
+.places .pl-name a.ext { color: inherit; font-weight: inherit; text-decoration: none; border-radius: 6px; }
+.places .pl-name a.ext::after { content: ' ↗'; font-size: 12px; color: var(--mute); }
+.places .pl-name a.ext:hover, .places .pl-name a.ext:focus-visible { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+.places .pl-name a.ext:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.places .pl-dist { grid-area: dist; justify-self: end; font-size: 15px; font-weight: 800; color: var(--accent-text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.places .pl-badges { grid-area: badge; display: flex; flex-wrap: wrap; gap: 4px; }
+.places .pl-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--r-pill); background: var(--paper); border: 1px solid var(--hair); color: var(--ink2); font-size: 12.5px; font-weight: 600; line-height: 1.5; }
+.places .pl-badge.lic { background: var(--accent-soft); border-color: transparent; color: var(--accent-text); }
+.places .pl-badge.open24 { background: var(--danger-soft); border-color: transparent; color: var(--danger-text); }
+.places .pl-badge.unk { color: var(--mute); }
+.places .pl-addr { grid-area: addr; margin: 0; font-size: 14px; color: var(--mute); line-height: 1.45; }
+.places li.place .pet-cond { grid-area: pet; margin: 0; }
+.places li.place .links { grid-area: links; display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+.places li.place .links .link-btn { flex: 1 1 0; justify-content: center; min-height: 44px; padding: 0 10px; font-size: 14px; border-width: 1.5px; white-space: nowrap; }
+@media (min-width: 600px) {
+  .places li.place { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "name dist links" "badge dist links" "addr dist links" "pet pet pet"; row-gap: 4px; }
+  .places li.place .links { margin: 0; flex-wrap: nowrap; }
+  .places li.place .links .link-btn { flex: none; min-height: 44px; padding: 0 10px; font-size: 13.5px; }
+  .places .pl-dist { align-self: center; }
+}
