@@ -1,4 +1,4 @@
-import { mountShelter } from './shelter.js?v=0.1.6-15';
+import { mountShelter } from './shelter.js?v=0.1.6-16';
 import { ROLE_LABEL, DAY_NOTE, policyText, nextLoginText } from './role-policy.js?v=0.1.6';
 // 꼬리길 모바일 웹. 로그인·세션은 frontend-book-walking/auth.js(= frontend-go-fishing/auth.js)를 그대로 쓴다(토큰은 sessionStorage, 서버가 만료 최종 판단).
 import { errText } from './errors.js?v=0.1.6';
@@ -82,7 +82,8 @@ function characterCandidates(d = {}) {
   const flat = Boolean(d.flatFace), coat = Boolean(d.thickCoat), list = [];
   for (const [order, [id, b]] of Object.entries(BREEDS).entries()) {
     const gap = Math.abs(SIZE_RANK[b.size] - SIZE_RANK[size]); if (gap > 1) continue;
-    const arts = [...(b.ages?.[age] ?? []), ...b.art.filter(x => !(b.ages?.[age] ?? []).includes(x))]; if (!arts.length) continue;
+    // 그 나이 전용 그림이 있으면 그것만(같은 견종의 성견 그림 + 나이 변형을 또 넣지 않음), 없으면 성견 그림을 나이 변형으로
+    const own = b.ages?.[age] ?? [], arts = own.length ? own : b.art; if (!arts.length) continue;
     // 대형 아이에게 중형은 '중대형'으로 허용하되 같은 크기보다 뒤. 소형 아이에게 중형도 같은 방식
     let score = (gap === 0 ? 100 : 40) + (flat === b.brachy ? (flat ? 25 : 5) : flat ? -10 : -3) + (coat === b.doubleCoat ? (coat ? 20 : 4) : coat ? -8 : -2);
     arts.forEach((art, i) => list.push({ art, breed: id, gap, rank: i, order, score: score - i * 0.5 + ((b.ages?.[age] ?? []).includes(art) ? 30 : 0), dedicated: (b.ages?.[age] ?? []).includes(art) }));
@@ -90,8 +91,8 @@ function characterCandidates(d = {}) {
   // 순서: 같은 크기 견종 대표 → 같은 크기의 다른 그림 → 이웃 크기 대표 → 이웃 크기의 다른 그림 (각 묶음 안은 점수순)
   const tier = x => x.gap * 2 + (x.rank > 0 ? 1 : 0);
   list.sort((x, y) => tier(x) - tier(y) || y.score - x.score || x.order - y.order);
-  return list.slice(0, 5).map(x => ({ art: x.art, breed: x.breed, ageVariant: x.dedicated ? null : (age === 'adult' ? null : age),
-    label: (x.dedicated || age === 'adult' ? '' : AGE_PREFIX[age]) + (ART_NAME[x.art] ?? BREEDS[x.breed].label) }));
+  return list.slice(0, 5).map(x => ({ art: x.art, breed: x.breed, ageVariant: x.dedicated ? null : (age === 'adult' ? null : age), ageBadge: age === 'adult' ? null : age,
+    label: (age === 'adult' ? '' : AGE_PREFIX[age]) + (ART_NAME[x.art] ?? BREEDS[x.breed].label) })); // 전용 그림도 '아기'·'어르신' 이름(은빛 필터는 변형에만)
 }
 const comboLabel = d => [SIZE_KO[d.size] ?? '중형', AGE_KO[d.age] ?? '성견', d.flatFace ? '단두종' : '', d.thickCoat ? '이중모' : ''].filter(Boolean).join(' · ');
 const kindOf = d => d?.flatFace ? 'flat' : d?.thickCoat ? 'coat' : (['small', 'medium', 'large'].includes(d?.size) ? d.size : 'medium');
@@ -171,7 +172,7 @@ function drawAvatarPicker() {
   if (dogDraft.variant > cands.length) dogDraft.variant = 1;
   pickerArts = cands.map(c => c.art); const v = dogDraft.variant;
   $('#dogAvatarKind').textContent = comboLabel(body);
-  box.innerHTML = cands.map((c, i) => { const n = i + 1; return `<button type="button" class="ava-opt${n === v ? ' on' : ''}" role="radio" aria-checked="${n === v}" data-n="${n}" aria-label="${esc(c.label)}"><span class="ava-img${c.ageVariant ? ' age-' + c.ageVariant : ''}"><img src="${caricatureSrc(c.art)}" alt="" width="64" height="64" decoding="async"></span><small>${esc(c.label)}</small></button>`; }).join('');
+  box.innerHTML = cands.map((c, i) => { const n = i + 1; return `<button type="button" class="ava-opt${n === v ? ' on' : ''}" role="radio" aria-checked="${n === v}" data-n="${n}" aria-label="${esc(c.label)}"><span class="ava-img${c.ageVariant ? ' age-' + c.ageVariant : ''}${c.ageBadge ? ' badge-' + c.ageBadge : ''}"><img src="${caricatureSrc(c.art)}" alt="" width="64" height="64" decoding="async"></span><small>${esc(c.label)}</small></button>`; }).join('');
   box.querySelectorAll('.ava-opt').forEach(b => b.onclick = () => { dogDraft.variant = Number(b.dataset.n); dogDraft.picked = true; drawAvatarPicker(); scheduleDogLive(); });
   // 상단 미리보기 그림은 서버 응답을 기다리지 않고 바로 바꾼다
   const live = document.querySelector('#dogLive .dog-ava'); if (live) live.outerHTML = avatar({ ...body, avatar: body.avatar }, 'lg');

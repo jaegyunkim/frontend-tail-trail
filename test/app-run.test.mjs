@@ -205,3 +205,20 @@ test('새 유화 캐리커처 12종: 파일·견종 표 연결, 크기·단두�
   // 예전에 저장된 id 는 그대로 읽히고 항상 실제 그림이 나온다
   for (const avatar of ['small-1', 'medium-3', 'large-5', 'flat-2', 'coat-4']) assert.ok(fs.existsSync(new URL('../' + app.caricatureSrc(app.characterFor({ avatar, size: 'small' }).art), import.meta.url)));
 });
+test('#24 새 유화 12장 매칭: 조합별 1순위·전용 그림·같은 견종 중복 없음', () => {
+  const app = load(async () => OPTIONS), c = d => app.characterCandidates(d), small = ['maltese', 'poodle', 'pomeranian', 'bichon', 'pug', 'shih_tzu'];
+  assert.equal(c({ size: 'large', age: 'adult', flatFace: true, thickCoat: true })[0].art, 'saint-bernard');
+  const ls = c({ size: 'large', age: 'senior' }); assert.equal(ls[0].art, 'saint-bernard-senior'); assert.equal(ls[0].ageVariant, null); assert.equal(ls[0].label, '어르신 세인트버나드');
+  assert.ok(ls.slice(1).every(x => x.ageVariant === 'senior'), '나머지는 어르신 변형');
+  const lp = c({ size: 'large', age: 'puppy' }); assert.equal(lp.slice(0, 2).map(x => x.art).sort().join(), 'husky-puppy,saint-bernard-puppy'); assert.equal(lp[0].label.startsWith('아기 '), true);
+  assert.equal(c({ size: 'small', age: 'senior', flatFace: true }).slice(0, 2).map(x => x.art).join(), 'pug-senior,shih-tzu-senior');
+  assert.equal(c({ size: 'small', age: 'puppy', flatFace: true }).slice(0, 2).map(x => x.art).join(), 'pug-puppy,shih-tzu-puppy');
+  assert.equal(c({ size: 'medium', age: 'adult', thickCoat: true }).slice(0, 2).map(x => x.art).join(), 'corgi,shiba');
+  for (const size of ['small', 'medium', 'large']) for (const age of ['puppy', 'adult', 'senior']) for (const f of [false, true]) for (const t of [false, true]) {
+    const list = c({ size, age, flatFace: f, thickCoat: t }); assert.equal(new Set(list.map(x => x.breed)).size, list.length, `${size}/${age}/${f}/${t} 같은 견종 중복`);
+    if (size === 'large') assert.ok(list.every(x => !small.includes(x.breed)));
+  }
+  // 비어 있는 칸은 나이 변형으로 폴백: 허스키 노령, 시바 강아지·노령
+  assert.equal(c({ size: 'large', age: 'senior' }).find(x => x.breed === 'husky').ageVariant, 'senior');
+  assert.equal(c({ size: 'medium', age: 'puppy', thickCoat: true }).find(x => x.breed === 'shiba').ageVariant, 'puppy');
+});
