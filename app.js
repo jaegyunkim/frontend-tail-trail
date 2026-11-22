@@ -22,7 +22,7 @@ let lastUiErr = 0;
 function uiError(e) { const now = Date.now(); if (now - lastUiErr < 8000) return; lastUiErr = now; try { toast(errText(e), 7000); } catch { /* 화면이 없으면 건너뜀 */ } }
 window.addEventListener('error', ev => { if (ev.target && ev.target !== window) return; if (/ResizeObserver/.test(ev.message || '')) return; uiError(ev.error ?? ev.message); });
 // 캐리커처 파일이 없거나(삭제·미생성) 못 받으면 대표 그림으로(한 번만)
-document.addEventListener('error', ev => { const t = ev.target; if (t?.tagName === 'IMG' && /assets\/caricatures\//.test(t.getAttribute('src') || '') && !t.dataset.fallback) { t.dataset.fallback = '1'; t.src = `assets/caricatures/${DEFAULT_CARICATURE}.webp`; } }, true);
+document.addEventListener('error', ev => { const t = ev.target; if (t?.tagName === 'IMG' && /assets\/caricatures\//.test(t.getAttribute('src') || '') && !t.dataset.fallback) { t.dataset.fallback = '1'; t.src = caricatureSrc(DEFAULT_CARICATURE); } }, true);
 window.addEventListener('unhandledrejection', ev => uiError(ev.reason));
 
 // ---------- 칩 ----------
@@ -52,7 +52,7 @@ const dogSub = d => [sizeLabel(d.size), ageLabel(d.age), d.flatFace ? '단두종
 // 바뀌어도 저장된 아이의 그림은 그대로다. 옛 형식 `{종류}-{1~5}`(#23)은 "그 아이의 4가지 특성(크기·나이·단두종·이중모)으로 계산한
 // 후보 목록에서 몇 번째인가"로 읽고(지금 보이는 그림 유지), 아이를 수정해 저장하면 그 그림의 이름으로 바꿔 저장한다.
 // 그림 이름은 파일 이름이라 한번 쓴 이름은 바꾸거나 지우지 않는다(지워져도 화면은 후보 1번 → 대표 그림으로 폴백).
-// 새 유화 캐리커처 추가: assets/caricatures/{그림이름}.webp(256px) 를 넣고 아래 BREEDS 의 art 에 이름을 적으면 끝.
+// 새 캐리커처 추가: assets/caricatures/{그림이름}.webp(256px) 를 넣고 아래 BREEDS 의 art 에 이름을 적으면 끝.
 //   ages 에 나이 전용 그림을 적으면 그 나이에서 최우선, 없으면 나이 변형(강아지 '아기' 배지 / 노령 은빛 톤 + '어르신' 배지)으로 보여 준다.
 const BREEDS = {
   //            크기        단두종        이중모            이름        그림(성견 기본, 앞이 대표)                     나이 전용 그림
@@ -73,7 +73,7 @@ const BREEDS = {
   pug:            { size: 'small',  brachy: true,  doubleCoat: false, label: '퍼그',         art: ['pug'], ages: { puppy: ['pug-puppy'], senior: ['pug-senior'] } },
   shih_tzu:       { size: 'small',  brachy: true,  doubleCoat: true,  label: '시츄',         art: ['shih-tzu'], ages: { puppy: ['shih-tzu-puppy'], senior: ['shih-tzu-senior'] } },
   chihuahua:      { size: 'small',  brachy: false, doubleCoat: false, label: '치와와',       art: ['chihuahua'], ages: { puppy: ['chihuahua-puppy'], senior: ['chihuahua-senior'] } },
-  dachshund:      { size: 'small',  brachy: false, doubleCoat: false, label: '닥스훈트',     art: ['dachshund'], ages: {} } // 아기·노령 그림은 다음 배치: 오면 ages 에 이름만(그 전에는 성견 그림의 나이 변형)
+  dachshund:      { size: 'small',  brachy: false, doubleCoat: false, label: '닥스훈트',     art: ['dachshund'], ages: { puppy: ['dachshund-puppy'], senior: ['dachshund-senior'] } }
 };
 // 옛 형식 {종류}-{1~5} 해석 고정(#34): 그림 이름 저장(#26)이 배포될 때의 운영 후보 표(97d1326~d4185b8, 0.1.6-17~19) 그대로.
 // 옛 형식 아이는 이 표로만 후보 순번을 읽으므로 위 BREEDS 에 그림이 늘어도 운영에서 보이던 그림이 바뀌지 않는다. 이 표는 고치지 말 것.
@@ -135,8 +135,8 @@ const characterFor = d => {
   const c = characterCandidates(d, LEGACY_BREEDS), n = Number(avatarId(d).slice(-1)) || 1; return c[n - 1] ?? c[0] ?? DEFAULT_CHARACTER;
 };
 // 같은 이름으로 그림 파일을 교체했을 때(이름 = 저장 id 라 바꿀 수 없음) 브라우저 캐시의 옛 그림을 쓰지 않게 주소에 판 번호를 붙인다. 교체할 때마다 +1
-const ART_REV = { 'chow-chow-senior': 2, jindo: 2 }; // 같은 이름으로 내용을 바꾼 그림(진돗개 성견: '팡!' 글자·배경 없앤 판)
-const caricatureSrc = name => { const n = Object.values(BREEDS).some(b => b.art.includes(name) || Object.values(b.ages ?? {}).flat().includes(name)) ? name : DEFAULT_CARICATURE; return `assets/caricatures/${n}.webp${ART_REV[n] ? '?v=' + ART_REV[n] : ''}`; };
+const ART_REV = 3;
+const caricatureSrc = name => { const n = Object.values(BREEDS).some(b => b.art.includes(name) || Object.values(b.ages ?? {}).flat().includes(name)) ? name : DEFAULT_CARICATURE; return `assets/caricatures/${n}.webp?v=${ART_REV}`; };
 const AGE_BADGE = { puppy: '아기', senior: '어르신' };
 const avatar = (d, cls = '') => { const ch = characterFor(d); return `<span class="dog-ava ${cls}${ch.ageVariant ? ' age-' + ch.ageVariant : ''}" aria-hidden="true"><img src="${caricatureSrc(ch.art)}" alt="" width="96" height="96" loading="lazy" decoding="async">${AGE_BADGE[d?.age] ? `<i class="ava-badge">${AGE_BADGE[d.age]}</i>` : ''}</span>`; };
 const dogFull = () => dogs.length >= dogOptions.maxDogs;
