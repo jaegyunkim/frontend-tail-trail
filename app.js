@@ -857,16 +857,8 @@ function applyAiLock(ai) {
   $('#aiLock').hidden = !aiLocked; if (aiLocked) { $('#aiLockMsg').textContent = ai.message || '지금은 AI 이용량이 모두 소진되어 잠시 이용할 수 없어요.'; hideTip(); }
   $("#btnPlan").disabled = !!aiLocked || quotaLocked || planning;
 }
-/** 화면 모드: 자동(기기 설정) · 밝게 · 어둡게. 이 기기에만 기억한다 */
-function applyTheme(mode) {
-  const m = mode === 'light' || mode === 'dark' ? mode : 'auto';
-  const html = document.documentElement;
-  if (html?.dataset) { if (m === 'auto') delete html.dataset.theme; else html.dataset.theme = m; }
-  try { if (m === 'auto') localStorage.removeItem('tailtrail.theme'); else localStorage.setItem('tailtrail.theme', m); } catch { /* 저장 못 해도 지금 화면에는 적용 */ }
-  document.querySelectorAll('[data-theme-set]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeSet === m)));
-}
-document.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => applyTheme(b.dataset.themeSet));
-applyTheme((() => { try { return localStorage.getItem('tailtrail.theme'); } catch { return null; } })());
+/** 화면은 항상 라이트. 예전에 저장해 둔 화면 모드 값은 지운다 */
+try { localStorage.removeItem('tailtrail.theme'); } catch { /* 못 지워도 화면은 그대로 라이트 */ }
 async function openSettings() {
   await refreshUsage();
   const a = state.auth; if (!a) return;

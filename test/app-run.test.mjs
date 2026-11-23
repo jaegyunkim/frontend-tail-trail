@@ -47,7 +47,7 @@ function makeContext(apiImpl) {
   return vm.createContext(ctx);
 }
 const FOOTER = `
-globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName, characterCandidates, characterFor, comboLabel, caricatureSrc, BREEDS, drawAvatarPicker, setDraft: d => { dogDraft = d; }, getDraft: () => dogDraft, agentSay, applyTheme,
+globalThis.__app = { drawForm, renderPlaces, drawDogChips, renderDogs, openDogForm, renderPlan, renderQuota, setOrigin, originValue, locateHere, logoutText, go, findDupDog, dogNameKey, checkDogName, characterCandidates, characterFor, comboLabel, caricatureSrc, BREEDS, drawAvatarPicker, setDraft: d => { dogDraft = d; }, getDraft: () => dogDraft, agentSay,
   setDogs: d => { dogs = d; }, setPlaces: p => { places = p; }, getSel: () => sel, isArtId, artEntry, pickerCands, saveAvatar, draftBody, setOptions: o => { dogOptions = o; }, LEGACY_BREEDS, tcDist, AGE_HINT, setUsage: u => { usage = u; } };`;
 const load = apiImpl => { const ctx = makeContext(apiImpl); vm.runInContext(SRC.replace(/^import .*$/gm, '') + FOOTER, ctx, { filename: 'app.js' }); return ctx.__app; };
 
@@ -165,11 +165,10 @@ test('서비스워커가 미리 받아 두는 캐리커처 파일이 모두 있�
   assert.equal(names.length, 43);
   for (const n of names) assert.ok(fs.existsSync(new URL(`../assets/caricatures/${n}.webp`, import.meta.url)), n);
 });
-test('에이전트 말풍선·신호등·화면 모드', () => {
+test('에이전트 말풍선·신호등', () => {
   const app = load(async () => OPTIONS); app.setDogs(DOGS);
   const html = app.agentSay(PLAN.walk, PLAN);
   assert.match(html, /class="agent-say"/); assert.match(html, /assets\/caricatures\//); assert.match(html, /앤비/);
-  assert.doesNotThrow(() => { app.applyTheme('dark'); app.applyTheme('auto'); });
   assert.doesNotThrow(() => app.renderPlan({ id: 'x', plan: { ...PLAN, walk: { ...PLAN.walk, gate: 'indoor' } } }));
 });
 test('꼬리일기 배변: 기분 칩과 같은 줄의 작은 체크(별도 카드 없음), 저장 값은 그대로 poop: 체크 여부', () => {

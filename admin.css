@@ -319,8 +319,8 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 
 
 /* =====================================================================================
-   관리자 디자인 시스템 v1.0 + 모바일 반응형(320·360·375·430px) — 서비스 화면(style.css)과 같은 토큰·다크모드
-   크림 #FAF8F5 · 에메랄드(채움 #059669) · 카드 20px · 다크 #0F172A. 터치 44px 이상, 본문 15px(보조 13px) 이상
+   관리자 디자인 시스템 v1.0 + 모바일 반응형(320·360·375·430px) — 서비스 화면(style.css)과 같은 토큰(라이트 고정)
+   크림 #FAF8F5 · 에메랄드(채움 #059669) · 카드 20px. 터치 44px 이상, 본문 15px(보조 13px) 이상
    ===================================================================================== */
 :root { color-scheme: light;
   --bg: #FAF8F5; --panel: #FFFFFF; --panel2: #F3F0EA; --panelSoft: #F3F0EA; --line: #EDE9E2; --text: #1E293B; --ink: #1E293B; --dim: #475569; --sub: #64748B;
@@ -328,16 +328,6 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
   --ok: #047857; --warn: #B45309; --info: #0284C7; --bad: #B91C1C; --warnSoft: #FFFBEB; --badSoft: #FEF2F2; --badLine: #FECACA;
   --grad: linear-gradient(135deg, #10B981, #059669); --r: 16px; --topbg: rgba(250,248,245,.95);
   --shadow: 0 1px 2px rgba(15,23,42,.04), 0 6px 18px rgba(15,23,42,.06); }
-:root[data-theme="dark"] { color-scheme: dark;
-  --bg: #0F172A; --panel: #1E293B; --panel2: #273449; --panelSoft: #273449; --line: #334155; --text: #F8FAFC; --ink: #F8FAFC; --dim: #CBD5E1; --sub: #94A3B8;
-  --cyan: #34D399; --blue: #34D399; --acc: #34D399; --accInk: #6EE7B7; --accSoft: #064E3B; --accLine: #065F46; --onAcc: #052E1F;
-  --ok: #6EE7B7; --warn: #FCD34D; --info: #38BDF8; --bad: #FCA5A5; --warnSoft: #422006; --badSoft: #450A0A; --badLine: #7F1D1D;
-  --grad: linear-gradient(135deg, #34D399, #10B981); --topbg: rgba(15,23,42,.92); --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark;
-  --bg: #0F172A; --panel: #1E293B; --panel2: #273449; --panelSoft: #273449; --line: #334155; --text: #F8FAFC; --ink: #F8FAFC; --dim: #CBD5E1; --sub: #94A3B8;
-  --cyan: #34D399; --blue: #34D399; --acc: #34D399; --accInk: #6EE7B7; --accSoft: #064E3B; --accLine: #065F46; --onAcc: #052E1F;
-  --ok: #6EE7B7; --warn: #FCD34D; --info: #38BDF8; --bad: #FCA5A5; --warnSoft: #422006; --badSoft: #450A0A; --badLine: #7F1D1D;
-  --grad: linear-gradient(135deg, #34D399, #10B981); --topbg: rgba(15,23,42,.92); --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); } }
 html, body, .admin { background: var(--bg); color: var(--ink); }
 body { font-family: Pretendard, 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; font-size: 15px; }
 .top { background: var(--topbg); border-bottom: 1px solid var(--line); }

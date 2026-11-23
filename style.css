@@ -785,7 +785,7 @@ label > .clearable { margin-top: 6px; }
    꼬리길 디자인 시스템 v1.0 (design/UI_UX_DESIGN_SPEC.md · design-tokens.json)
    Warm Cream #FAF8F5 · Emerald #10B981 · Warm Coral #FF7A59 · Sunny Yellow #FBBF24 · 카드 20px · 본문 15px 이상
    흰 글자를 얹는 채움색은 대비(WCAG AA)를 위해 Emerald 600(#059669)을 쓰고, #10B981 은 신호등·링·포인트에 쓴다.
-   다크모드: 기기 설정(자동) 또는 설정 창의 '화면 모드'(data-theme) — 배경 #0F172A
+   항상 라이트(밝은 화면) 고정 — 다크 모드·화면 모드 설정 없음
    ===================================================================================== */
 :root {
   color-scheme: light;
@@ -801,32 +801,6 @@ label > .clearable { margin-top: 6px; }
   --r: 20px; --r-sm: 16px; --r-pill: 9999px;
   --shadow: 0 1px 2px rgba(15,23,42,.04), 0 6px 18px rgba(15,23,42,.06);
   --tabbar: 68px;
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --brand: #34D399; --accent: #34D399; --accent-hover: #10B981; --accent-text: #6EE7B7; --accent-soft: #064E3B; --accent-line: #065F46; --on-accent: #052E1F;
-  --coral: #FB923C; --coral-soft: #431407; --coral-text: #FDBA74; --sun: #FBBF24; --sky: #38BDF8; --sky-soft: #0C2A3F;
-  --paper: #0F172A; --card: #1E293B; --hair: #334155; --soft: #273449; --ink: #F8FAFC; --ink2: #CBD5E1; --mute: #94A3B8;
-  --safe: #34D399; --safe-soft: #064E3B; --safe-text: #A7F3D0;
-  --caution: #FBBF24; --caution-soft: #422006; --caution-text: #FCD34D;
-  --danger: #F87171; --danger-soft: #450A0A; --danger-text: #FCA5A5; --danger-line: #7F1D1D;
-  --warn: #FBBF24; --bad: #F87171; --info: #38BDF8; --teal: #34D399; --teal-text: #6EE7B7;
-  --top-bg: rgba(15,23,42,.92); --ava-bg: #273449; --backdrop: rgba(0,0,0,.6);
-  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --brand: #34D399; --accent: #34D399; --accent-hover: #10B981; --accent-text: #6EE7B7; --accent-soft: #064E3B; --accent-line: #065F46; --on-accent: #052E1F;
-    --coral: #FB923C; --coral-soft: #431407; --coral-text: #FDBA74; --sun: #FBBF24; --sky: #38BDF8; --sky-soft: #0C2A3F;
-    --paper: #0F172A; --card: #1E293B; --hair: #334155; --soft: #273449; --ink: #F8FAFC; --ink2: #CBD5E1; --mute: #94A3B8;
-    --safe: #34D399; --safe-soft: #064E3B; --safe-text: #A7F3D0;
-    --caution: #FBBF24; --caution-soft: #422006; --caution-text: #FCD34D;
-    --danger: #F87171; --danger-soft: #450A0A; --danger-text: #FCA5A5; --danger-line: #7F1D1D;
-    --warn: #FBBF24; --bad: #F87171; --info: #38BDF8; --teal: #34D399; --teal-text: #6EE7B7;
-    --top-bg: rgba(15,23,42,.92); --ava-bg: #273449; --backdrop: rgba(0,0,0,.6);
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25);
-  }
 }
 html, body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
 body { -webkit-tap-highlight-color: rgba(16,185,129,.14); }
@@ -956,10 +930,6 @@ dialog::backdrop { background: var(--backdrop); }
 .diary-form .time-pick select { background-color: var(--card); color: var(--ink); border-color: var(--hair); }
 
 /* 화면 모드 고르기(설정 창) */
-.theme-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0 14px; padding: 4px; background: var(--soft); border-radius: var(--r-sm); }
-.theme-pick button { min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--ink2); font-weight: 700; }
-.theme-pick button[aria-pressed="true"] { background: var(--card); color: var(--accent-text); box-shadow: var(--shadow); }
-.theme-label { margin: 14px 0 0; font-size: 13px; font-weight: 700; color: var(--mute); }
 /* 캐리커처가 액자(정사각·원형)를 꽉 채우게: 그리드 정렬 대신 절대 배치 */
 .dog-ava { position: relative; }
 .dog-ava > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
@@ -1162,8 +1132,6 @@ dialog::backdrop { background: var(--backdrop); }
 .ava-opt small { opacity: 1; color: var(--mute); } .ava-opt[aria-checked="true"] small { color: var(--ink2); }
 .dog-pick-card[aria-checked="true"] small, .wx-hour.now .t { color: var(--ink2); }
 .star { color: #8C867C; } .star.on { color: var(--sun); }
-:root[data-theme="dark"] .star:not(.on) { color: #64748B; } :root[data-theme="dark"] .lg.bad { color: #450A0A; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .star:not(.on) { color: #64748B; } :root:not([data-theme="light"]) .lg.bad { color: #450A0A; } }
 /* 터치 영역 */
 .brand { min-height: 44px; min-width: 44px; }
 .clear-btn { width: 40px; height: 40px; }
@@ -1195,14 +1163,10 @@ dialog::backdrop { background: var(--backdrop); }
 /* ===== #37 Manus 보고서 반영: 대비(WCAG AA)·포커스 링·좁은 화면 ===== */
 /* 밝은 모드 초록 바탕 흰 글자 3.77 → 5.48: 강조색을 한 단계 진한 에메랄드(#047857)로. 로고·아이콘의 밝은 초록(--brand)은 그대로 */
 :root { --accent: #047857; --accent-hover: #065F46; --focus: #047857; --sky: #0369A1; } /* 강수 글자 하늘색 4.10 → 5.9 */
-:root[data-theme="dark"] { --focus: #34D399; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --focus: #34D399; } }
 /* 결과 점수 숫자(큰 글자 3:1): 좋음 2.54 → 5.48, 주의 2.15 → 5.0 */
 .metric-num.go { color: var(--accent); } .metric-num.caution { color: var(--warn); } .metric-num.indoor { color: var(--bad); }
 /* '위험' 범례·삭제 확인 버튼: 흰/#EF4444 3.76 → 흰/#B91C1C 6.47, 다크는 어두운 글자/#F87171 5.8 */
 .lg.bad, .primary.danger-btn, .primary.danger-btn:hover { background: var(--bad); color: #fff; }
-:root[data-theme="dark"] .lg.bad, :root[data-theme="dark"] .primary.danger-btn { color: #450A0A; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lg.bad, :root:not([data-theme="light"]) .primary.danger-btn { color: #450A0A; } }
 /* 입력 예시문: 불투명도 .85(실효 3.56) → 1 */
 input::placeholder, textarea::placeholder { color: var(--mute); opacity: 1; }
 /* '아기' 배지: 흰/코랄 2.6 → 흰/#C2410C 5.2(두 테마 같은 색) */
