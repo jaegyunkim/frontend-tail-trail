@@ -1,10 +1,5 @@
 import { errText } from './errors.js?v=0.1.6';
-import { policyText, DAY_NOTE } from './role-policy.js?v=0.1.6';
 import {api} from './auth.js?v=0.1.6';
-// 이용 안내: 서버 기본 한도(/healthz 역할 기본값)로 채운다. 실패하면 화면에 둔 기본값 그대로
-const showPolicy=L=>{document.querySelector('#signupPolicy').textContent=policyText('user',L)+'(기본값, 계정마다 다를 수 있어요). '+DAY_NOTE;};
-showPolicy();
-api('/healthz',{noAuth:true,timeoutMs:8000}).then(h=>{if(h?.auth?.roleLimits?.user)showPolicy(h.auth.roleLimits.user);}).catch(()=>{});
 const form=document.querySelector('#requestForm');
 const result=document.querySelector('#result');
 const button=document.querySelector('#registerSubmit');
