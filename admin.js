@@ -2,6 +2,7 @@ import { errText } from './errors.js?v=0.1.6';
 import { ROLE_LABEL, policyText, limitsText, DAY_NOTE } from './role-policy.js?v=0.1.6';
 import { approvalMailto } from './approval-email.js?v=0.1.6';
 import { visitsHtml } from './admin-visits.js?v=0.1.6';
+import { regResendButton, findAccountId, resendPath, resendConfirmHtml, resendDone, resendFail } from './admin-resend.js?v=0.1.6-31';
 // 꼬리길 관리자 화면(backend-go-fishing/frontend-go-fishing 운영관리와 동일 구성 + 플랜·코스 탭): 계정·세션·사용량·대화 로그·로그인/작업 기록. 관리자 계정으로 로그인한 탭에서만 동작.
 import { state, api, health, startTimer, syncAccount, setOnAuthLost, logout } from './auth.js?v=0.1.6';
 const $ = s => document.querySelector(s);
@@ -35,6 +36,18 @@ const showSecret = async (title, pw, approvalEmail = null) => {
  };
  await pending;$('#dlgForm').replaceChildren();
 };
+
+// 임시 비밀번호 생성(신청 승인 탭 승인 완료 카드): 확인 창 → 진행 중 표시 → 새 비밀번호 창(showSecret, '메일 보내기'로 메일 앱 열기) → 완료·실패 알림. 이미 있는 중복 호출은 버튼 잠금으로 막아요.
+async function runResend(b, u, getId) {
+  if (b.disabled || !(await dialog(resendConfirmHtml(u), () => true))) return;
+  const label = b.textContent; b.disabled = true; b.textContent = '만드는 중…'; b.setAttribute('aria-busy', 'true'); note('임시 비밀번호를 만드는 중이에요…');
+  try {
+    const out = await api(resendPath(await getId()), { method: 'POST', body: '{}' });
+    if (out.tempPassword) await showSecret(`${u.loginId} 새 임시 비밀번호`, out.tempPassword, u.loginId);
+    note(resendDone(u, out));
+  } catch (e) { note(resendFail(e), true); }
+  finally { b.disabled = false; b.textContent = label; b.removeAttribute('aria-busy'); }
+}
 
 // ---- AI 연결(제공사·엔드포인트·API 키·모델) ----
 let llmState = null;
@@ -93,10 +106,11 @@ const roleText = r => ROLE_LABEL[r] ?? r;
 const views = {
  async requests(){
  const {requests,capacity}=await api('/v1/admin/registrations');
- view.innerHTML='<div class="tool"><h2>가입 신청 · 승인</h2></div>'+capBar(capacity)+'<p class="sub">승인 즉시 랜덤 임시 비밀번호가 발급돼요. 승인 완료 창의 메일 보내기로 신청자에게 안내해 주세요. 메일 앱에서 직접 발송해야 해요. 잘못 승인했다면 <b>승인 회수</b>로 승인 대기로 되돌릴 수 있어요.</p><div class="requestCards">'+requests.map(r=>'<article class="card"><h3><a class="mail-link" href="mailto:'+encodeURIComponent(r.login_id)+'">'+esc(r.login_id)+'</a> · '+esc(r.display_name)+'</h3><p class="sub">'+dt(r.status==='pending'?r.created_at:r.reviewed_at)+' · '+esc({pending:'승인 대기',approved:'승인 완료',rejected:'거절'}[r.status])+'</p>'+(r.reapply_count?'<p><span class="pill warn">재신청 '+n(r.reapply_count)+'회</span> <span class="sub">'+(r.last_rejected_at?dt(r.last_rejected_at)+'에 거절했던 신청':'이전에 거절했던 신청')+'</span></p>':'')+(r.status==='pending'?'<div class="acts"><button data-review="approve" data-id="'+r.id+'">승인·비밀번호 발급</button><button data-review="reject" data-id="'+r.id+'">거절</button></div>':r.status==='approved'?'<div class="acts"><button class="danger" data-revoke-reg="'+r.id+'" data-login="'+esc(r.login_id)+'">승인 회수</button></div>':'')+'</article>').join('')+'</div>';
+ view.innerHTML='<div class="tool"><h2>가입 신청 · 승인</h2></div>'+capBar(capacity)+'<p class="sub">승인 즉시 랜덤 임시 비밀번호가 발급돼요. 승인 완료 창의 메일 보내기로 신청자에게 안내해 주세요. 메일 앱에서 직접 발송해야 해요. 잘못 승인했다면 <b>승인 회수</b>로 승인 대기로 되돌릴 수 있어요.</p><div class="requestCards">'+requests.map(r=>'<article class="card"><h3><a class="mail-link" href="mailto:'+encodeURIComponent(r.login_id)+'">'+esc(r.login_id)+'</a> · '+esc(r.display_name)+'</h3><p class="sub">'+dt(r.status==='pending'?r.created_at:r.reviewed_at)+' · '+esc({pending:'승인 대기',approved:'승인 완료',rejected:'거절'}[r.status])+'</p>'+(r.reapply_count?'<p><span class="pill warn">재신청 '+n(r.reapply_count)+'회</span> <span class="sub">'+(r.last_rejected_at?dt(r.last_rejected_at)+'에 거절했던 신청':'이전에 거절했던 신청')+'</span></p>':'')+(r.status==='pending'?'<div class="acts"><button data-review="approve" data-id="'+r.id+'">승인·비밀번호 발급</button><button data-review="reject" data-id="'+r.id+'">거절</button></div>':r.status==='approved'?'<div class="acts">'+regResendButton(r)+'<button class="danger" data-revoke-reg="'+r.id+'" data-login="'+esc(r.login_id)+'">승인 회수</button></div>':'')+'</article>').join('')+'</div>';
  if(!requests.length)view.innerHTML+='<p>접수된 신청이 없어요.</p>';
  // 승인 회수: 승인 대기로 되돌리고 승인 때 만든 계정과 그 데이터를 지운다(로그인·작업 기록은 남김)
  view.querySelectorAll('[data-revoke-reg]').forEach(b=>b.onclick=async()=>{if(!confirm(b.dataset.login+' 승인을 회수할까요?\n\n• 신청은 \'승인 대기\'로 돌아가요.\n• 승인 때 만든 계정과 그 계정의 산책 판단·우리 아이·꼬리일기·자주 걷는 곳·의견이 지워지고, 이용 중이면 바로 로그아웃돼요.\n• 이미 보낸 승인 메일의 임시 비밀번호는 더 이상 쓸 수 없어요.'))return;b.disabled=true;try{const out=await api('/v1/admin/registrations/'+b.dataset.revokeReg+'/revoke',{method:'POST',body:'{}'});note(out.loginId+' 승인을 회수했어요'+(out.everLoggedIn?' · 로그인한 적이 있는 계정이었어요':' · 로그인한 적 없음')+'. 다시 승인하면 새 임시 비밀번호가 발급돼요.');await views.requests();}catch(e){note(errText(e),true);b.disabled=false;}});
+ view.querySelectorAll('[data-resend-reg]').forEach(b=>b.onclick=()=>runResend(b,{loginId:b.dataset.login,displayName:b.dataset.name},async()=>findAccountId((await api('/v1/admin/users')).users,b.dataset.login)));
  view.querySelectorAll('[data-review]').forEach(b=>b.onclick=async()=>{if(!confirm(b.dataset.review==='approve'?'이 사용자를 승인할까요?':'이 신청을 거절할까요?'))return;b.disabled=true;try{const out=await api('/v1/admin/registrations/'+b.dataset.id+'/review',{method:'POST',body:JSON.stringify({action:b.dataset.review})});if(out.tempPassword)await showSecret(out.user.loginId+' 승인 완료',out.tempPassword,out.user.loginId);await views.requests();}catch(e){note(errText(e),true);b.disabled=false;}});
  },
  async model(){const {llm,credits,ai}=await api('/v1/admin/model');
